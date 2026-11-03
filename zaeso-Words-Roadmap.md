@@ -1,74 +1,81 @@
-# zaeso-Words — Project Roadmap
+from pathlib import Path
 
-## Project Overview
+content = """# zaeso-Words — Дорожная карта проекта
 
-**zaeso-Words** is a Java implementation of the classic Word Search puzzle. The player searches for hidden words in a grid of letters. The project is developed incrementally, starting with a console-based MVP and progressing toward a graphical game.
+## О проекте
 
-## Stage 1. Minimum Viable Product (MVP)
+**zaeso-Words** — игра «Поиск слов», разработанная на Java. Игроку необходимо находить спрятанные слова в сетке из букв. Разработка ведётся поэтапно: от базовой консольной версии до полноценной игры с графическим интерфейсом.
 
-- [x] Create the Java project structure.
-- [x] Implement letter-grid generation.
-- [x] Place words in all 8 directions.
-- [x] Allow word intersections when overlapping letters match.
-- [x] Fill empty cells with random letters.
-- [x] Implement console gameplay.
+## Этап 1. Базовая версия (MVP)
 
-## Stage 2. Improve Game Logic
+- [x] Создать структуру Java-проекта.
+- [x] Реализовать генерацию буквенной сетки.
+- [x] Добавить размещение слов в 8 направлениях.
+- [x] Разрешить пересечение слов, если совпадают буквы.
+- [x] Заполнять пустые клетки случайными буквами.
+- [x] Реализовать игровой режим в консоли.
 
-- [ ] Add difficulty levels.
-- [ ] Implement a game timer.
-- [ ] Add a scoring system.
-- [ ] Validate found words.
-- [ ] Add hints.
-- [ ] Handle invalid user input.
+## Этап 2. Улучшение игровой логики
 
-## Stage 3. Graphical User Interface
+- [ ] Добавить уровни сложности.
+- [ ] Реализовать таймер игры.
+- [ ] Добавить систему подсчёта очков.
+- [ ] Реализовать проверку найденных слов.
+- [ ] Добавить подсказки.
+- [ ] Обработать некорректный ввод пользователя.
 
-- [ ] Build a graphical user interface.
-- [ ] Make the letter grid interactive.
-- [ ] Highlight found words.
-- [ ] Add a main menu and settings screen.
-- [ ] Add a game completion screen.
+## Этап 3. Графический интерфейс
 
-## Stage 4. Additional Features
+- [ ] Создать графический интерфейс.
+- [ ] Сделать буквенную сетку интерактивной.
+- [ ] Добавить выделение найденных слов.
+- [ ] Создать главное меню и экран настроек.
+- [ ] Добавить экран завершения игры.
 
-- [ ] Add word categories.
-- [ ] Allow players to choose grid dimensions.
-- [ ] Generate random puzzles.
-- [ ] Save player results.
-- [ ] Add a leaderboard.
+## Этап 4. Дополнительные возможности
 
-## Stage 5. Testing and Optimization
+- [ ] Добавить категории слов.
+- [ ] Реализовать выбор размера сетки.
+- [ ] Добавить случайную генерацию заданий.
+- [ ] Реализовать сохранение результатов.
+- [ ] Создать таблицу рекордов.
 
-- [ ] Test grid generation.
-- [ ] Test word placement in all 8 directions.
-- [ ] Verify word intersections.
-- [ ] Fix discovered bugs.
-- [ ] Optimize performance.
-- [ ] Update project documentation.
+## Этап 5. Тестирование и оптимизация
 
-## Stage 6. Final Release
+- [ ] Проверить корректность генерации сеток.
+- [ ] Протестировать размещение слов во всех 8 направлениях.
+- [ ] Проверить корректность пересечений слов.
+- [ ] Исправить обнаруженные ошибки.
+- [ ] Оптимизировать производительность.
+- [ ] Обновить документацию проекта.
 
-- [ ] Prepare the final version.
-- [ ] Complete `README.md`.
-- [ ] Add setup and launch instructions.
-- [ ] Verify the project build.
-- [ ] Publish a GitHub release.
+## Этап 6. Финальный выпуск
 
-## Suggested Git Commit Plan
+- [ ] Подготовить финальную версию проекта.
+- [ ] Завершить оформление файла `README.md`.
+- [ ] Добавить инструкции по установке и запуску.
+- [ ] Проверить сборку проекта.
+- [ ] Опубликовать релиз на GitHub.
 
-| Commit | Description |
+## План коммитов Git
+
+| № | Описание коммита |
 |---|---|
-| 1 | `Initial project structure` |
-| 2 | `Implement word search generator` |
-| 3 | `Add console gameplay` |
-| 4 | `Improve game mechanics` |
-| 5 | `Add graphical interface` |
-| 6 | `Add scoring and difficulty levels` |
-| 7 | `Prepare final release` |
+| 1 | `Начальная структура проекта` |
+| 2 | `Реализация генератора головоломок` |
+| 3 | `Добавление консольного игрового режима` |
+| 4 | `Улучшение игровой логики` |
+| 5 | `Добавление графического интерфейса` |
+| 6 | `Добавление очков и уровней сложности` |
+| 7 | `Подготовка финального релиза` |
 
-> **Note:** This roadmap describes planned development. The checked items represent the functionality included in the prepared MVP; unchecked items are future work.
+> **Примечание:** это план дальнейшей разработки. Отмеченные галочками задачи уже реализованы в подготовленной базовой версии; остальные задачи предстоит выполнить.
 
-## Main Goal
+## Главная цель
 
-Deliver a stable, user-friendly, and extensible Word Search game in Java, with a clear foundation for future improvements.
+Создать стабильную, удобную и расширяемую игру «Поиск слов» на Java, которую в дальнейшем можно улучшать и дополнять новыми возможностями.
+"""
+path = Path("/mnt/data/zaeso-Words-Roadmap-RU.md")
+path.write_text(content, encoding="utf-8")
+print(f"Создан файл: {path} ({path.stat().st_size} байт)")
+
