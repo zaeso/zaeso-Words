@@ -88,7 +88,9 @@ public class ConsoleGame {
                 }
 
                 long remaining = timer.remainingSeconds();
-                if (remaining != lastNotified && (remaining == 60 || remaining == 30 || remaining <= 10)) {
+                if (timer.elapsedSeconds() > 0
+                        && remaining != lastNotified
+                        && (remaining == 60 || remaining == 30 || remaining <= 10)) {
                     System.out.printf("%n[ТАЙМЕР] Осталось %s.%n", GameTimer.format(remaining));
                     lastNotified = remaining;
                 }

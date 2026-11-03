@@ -1,5 +1,7 @@
 # Classic Word Search (Java)
 
+[![CI](https://github.com/zaeso/zaeso-Words/actions/workflows/ci.yml/badge.svg)](https://github.com/zaeso/zaeso-Words/actions/workflows/ci.yml)
+
 Консольная игра-головоломка на Java 17+. Проект разделён на пакеты `model`, `generator` и `play`.
 
 ## Запуск
@@ -9,6 +11,13 @@
 ```bash
 javac -encoding UTF-8 -d out src/main/java/game/model/*.java src/main/java/game/generator/*.java src/main/java/game/play/*.java src/main/java/game/Main.java
 java -cp out game.Main
+```
+
+Через Maven:
+
+```bash
+mvn compile
+java -cp target/classes game.Main
 ```
 
 ## Алгоритм генерации
@@ -29,9 +38,28 @@ java -cp out game.Main
 
 На игру отводится 5 минут. Оставшееся время показывается в приглашении ко вводу, а также в виде предупреждений за 60, 30 и последние 10 секунд. Когда время заканчивается, игра завершается и выводит результаты: сколько слов найдено и сколько времени затрачено. Длительность игры по умолчанию задаётся в `ConsoleGame` и может быть передана через конструктор `ConsoleGame(puzzle, scanner, Duration)`.
 
+## Тестирование
+
+```bash
+mvn test
+```
+
+Первый набор тестов проверяет:
+
+- наличие всех 8 направлений размещения слов;
+- нормализацию, дедупликацию и фильтрацию словаря;
+- заполнение всей сетки и соответствие размещённых слов клеткам;
+- неизменяемость списка размещений в модели `Puzzle`;
+- отсчёт, остановку, истечение и форматирование времени в `GameTimer`;
+- приём правильного слова и досрочное завершение игры по таймеру.
+
+Тесты запускаются автоматически в GitHub Actions при каждом push в `main` и при создании pull request.
+
 ## Структура
 
 - `game.model` — направления, размещение слова и модель сетки.
 - `game.generator` — алгоритм случайной генерации.
 - `game.play` — игровой цикл, таймер и вывод сетки.
 - `game.Main` — запуск программы и выбор размера.
+- `src/test/java` — тесты JUnit 5.
+- `.github/workflows/ci.yml` — конфигурация CI.
