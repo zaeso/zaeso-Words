@@ -4,9 +4,11 @@ import game.model.Puzzle;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class ConsoleGame {
     private static final Duration DEFAULT_TIME_LIMIT = Duration.ofMinutes(5);
+    private static final Pattern CYRILLIC_WORD = Pattern.compile("[А-ЯЁ]+");
 
     private final Puzzle puzzle;
     private final Scanner scanner;
@@ -25,6 +27,7 @@ public class ConsoleGame {
 
     public void start() {
         Set<String> allWords = new LinkedHashSet<>(puzzle.getWords());
+        int maxWordLength = allWords.stream().mapToInt(String::length).max().orElse(0);
         System.out.println("\nНайди спрятанные слова. Вводи слово целиком.");
         System.out.println("На игру отведено " + GameTimer.format(timer.getLimitSeconds()) + ".");
         printGrid();
@@ -51,7 +54,13 @@ public class ConsoleGame {
                 }
 
                 if (answer.equals("EXIT")) break;
-                if (!allWords.contains(answer)) {
+                if (answer.isEmpty()) {
+                    System.out.println("Пустой ввод. Введите слово целиком.");
+                } else if (!CYRILLIC_WORD.matcher(answer).matches()) {
+                    System.out.println("Используйте только русские буквы.");
+                } else if (answer.length() > maxWordLength) {
+                    System.out.println("Слово слишком длинное.");
+                } else if (!allWords.contains(answer)) {
                     System.out.println("Такого слова нет в списке.");
                 } else if (found.contains(answer)) {
                     System.out.println("Это слово уже найдено.");
