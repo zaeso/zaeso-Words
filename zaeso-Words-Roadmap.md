@@ -1,6 +1,4 @@
-from pathlib import Path
-
-content = """# zaeso-Words — Дорожная карта проекта
+# zaeso-Words — Дорожная карта проекта
 
 ## О проекте
 
@@ -87,8 +85,3 @@ content = """# zaeso-Words — Дорожная карта проекта
 ## Главная цель
 
 Создать стабильную, удобную и расширяемую игру «Поиск слов» на Java, которую в дальнейшем можно улучшать и дополнять новыми возможностями.
-"""
-path = Path("/mnt/data/zaeso-Words-Roadmap-RU.md")
-path.write_text(content, encoding="utf-8")
-print(f"Создан файл: {path} ({path.stat().st_size} байт)")
-
