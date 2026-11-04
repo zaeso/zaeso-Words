@@ -7,9 +7,36 @@ import game.model.Puzzle;
 import java.util.*;
 
 public class GridGenerator {
-    private final Random random = new Random();
     private static final int ATTEMPTS_PER_WORD = 300;
     private static final int RESTARTS = 100;
+
+    private final Random random;
+
+    /**
+     * Создаёт генератор со случайным начальным состоянием.
+     */
+    public GridGenerator() {
+        this(new Random());
+    }
+
+    /**
+     * Создаёт генератор с воспроизводимой последовательностью случайных чисел.
+     * Одинаковый seed при одинаковых входных данных даёт одинаковую сетку.
+     *
+     * @param seed начальное состояние генератора случайных чисел
+     */
+    public GridGenerator(long seed) {
+        this(new Random(seed));
+    }
+
+    /**
+     * Создаёт генератор с переданным источником случайных чисел.
+     *
+     * @param random источник случайных чисел, не может быть {@code null}
+     */
+    public GridGenerator(Random random) {
+        this.random = Objects.requireNonNull(random, "random");
+    }
 
     public Puzzle generate(int height, int width, List<String> sourceWords, int minWords) {
         List<String> words = sourceWords.stream()
@@ -37,8 +64,7 @@ public class GridGenerator {
                     int row = random.nextInt(height);
                     int col = random.nextInt(width);
 
-                    if (canPlace(grid, word, row, col, direction)) {
-                        place(grid, word, row, col, direction);
+                    if (tryPlace(grid, word, row, col, direction)) {
                         placed.add(new Placement(word, row, col, direction));
                         break;
                     }
@@ -51,6 +77,19 @@ public class GridGenerator {
             }
         }
         return null;
+    }
+
+    /**
+     * Пытается разместить слово. Если слово выходит за границы или пересекает
+     * чужую букву, сетка остаётся без изменений.
+     *
+     * @return {@code true}, если слово размещено
+     */
+    boolean tryPlace(char[][] grid, String word, int row, int col, Direction direction) {
+        if (!canPlace(grid, word, row, col, direction)) return false;
+
+        place(grid, word, row, col, direction);
+        return true;
     }
 
     private boolean canPlace(char[][] grid, String word, int row, int col, Direction d) {
