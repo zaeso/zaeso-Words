@@ -1,5 +1,6 @@
 package game.play;
 
+import game.config.GameConfig;
 import game.model.Puzzle;
 
 import java.time.Duration;
@@ -23,6 +24,13 @@ public class ConsoleGame {
         this.puzzle = puzzle;
         this.scanner = scanner;
         this.timer = new GameTimer(timeLimit);
+    }
+
+    /**
+     * Создаёт игру с параметрами выбранного уровня сложности.
+     */
+    public ConsoleGame(Puzzle puzzle, Scanner scanner, GameConfig config) {
+        this(puzzle, scanner, Objects.requireNonNull(config, "config").timeLimit());
     }
 
     public void start() {

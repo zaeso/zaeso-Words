@@ -1,5 +1,7 @@
 package game.generator;
 
+import game.config.Difficulty;
+import game.config.GameConfig;
 import game.model.Direction;
 import game.model.Placement;
 import game.model.Puzzle;
@@ -18,6 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GridGeneratorTest {
     private static final List<String> WORDS =
             List.of("КОТ", "ДОМ", "СЛОН", "ТИГР", "ЛУНА", "ЗИМА", "ВЕСНА");
+
+    private static final List<String> LARGE_WORDS = List.of(
+            "АЛГОРИТМ", "ПРОГРАММА", "КОМПЬЮТЕР", "ИНТЕРНЕТ", "МОНИТОР",
+            "КЛАВИАТУРА", "ПРОЦЕССОР", "ПЕРЕМЕННАЯ", "МАССИВ", "ЦИКЛ",
+            "МЕТОД", "КЛАСС", "ОБЪЕКТ", "СТРОКА", "ФУНКЦИЯ",
+            "ПИТОН", "ДЖАВА", "КОД", "СЕРВЕР", "БРАУЗЕР",
+            "СИСТЕМА", "ДАННЫЕ", "ФАЙЛ", "ПАПКА", "СЕТЬ",
+            "РАЗРАБОТКА", "ПРОЕКТ", "ПАМЯТЬ", "ЛОГИКА", "КОМПИЛЯТОР"
+    );
 
     @Test
     void returnsNullWhenNotEnoughWords() {
@@ -93,6 +104,22 @@ class GridGeneratorTest {
         for (int row = 0; row < firstPuzzle.getGrid().length; row++) {
             assertArrayEquals(firstPuzzle.getGrid()[row], secondPuzzle.getGrid()[row],
                     "строка " + row + " должна совпадать при одинаковом seed");
+        }
+    }
+
+    @Test
+    void worksWithParametersOfEveryDifficulty() {
+        for (Difficulty difficulty : Difficulty.values()) {
+            GameConfig config = difficulty.config();
+            GridGenerator generator = new GridGenerator(11L);
+
+            Puzzle puzzle = generator.generate(
+                    config.height(), config.width(), LARGE_WORDS, config.minWords());
+
+            assertNotNull(puzzle, "не удалось сгенерировать сетку для уровня " + difficulty.name());
+            assertEquals(config.height(), puzzle.getGrid().length, difficulty.name());
+            assertEquals(config.width(), puzzle.getGrid()[0].length, difficulty.name());
+            assertTrue(puzzle.getWords().size() >= config.minWords(), difficulty.name());
         }
     }
 

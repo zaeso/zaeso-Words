@@ -1,5 +1,6 @@
 package game;
 
+import game.config.Difficulty;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -82,6 +84,63 @@ class MainTest {
 
         assertNull(size[0], output);
         assertTrue(output.contains("Ввод завершён."), output);
+    }
+
+    @Test
+    void choosesDifficultyByNumber() {
+        Difficulty[] chosen = new Difficulty[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseDifficulty(scanner("1\n")));
+
+        assertEquals(Difficulty.EASY, chosen[0], output);
+    }
+
+    @Test
+    void choosesDifficultyByNameInAnyCase() {
+        Difficulty[] chosen = new Difficulty[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseDifficulty(scanner("СЛОЖНЫЙ\n")));
+
+        assertEquals(Difficulty.HARD, chosen[0], output);
+    }
+
+    @Test
+    void choosesNormalDifficultyOnBlankInput() {
+        Difficulty[] chosen = new Difficulty[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseDifficulty(scanner("\n")));
+
+        assertEquals(Difficulty.NORMAL, chosen[0], output);
+    }
+
+    @Test
+    void repeatsDifficultyAfterUnknownInput() {
+        Difficulty[] chosen = new Difficulty[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseDifficulty(scanner("unknown\n3\n")));
+
+        assertEquals(Difficulty.HARD, chosen[0], output);
+        assertTrue(output.contains("Неизвестная сложность."), output);
+    }
+
+    @Test
+    void stopsDifficultyChoiceWhenInputEnds() {
+        Difficulty[] chosen = new Difficulty[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseDifficulty(scanner("")));
+
+        assertNull(chosen[0], output);
+        assertTrue(output.contains("Ввод завершён."), output);
+    }
+
+    @Test
+    void usesBoardSizeFromDifficultyProfileOnBlankInput() {
+        int[][] size = new int[1][];
+
+        String output = captureOutput(() ->
+                size[0] = Main.chooseBoardSize(scanner("\n\n"), Difficulty.HARD.config()));
+
+        assertArrayEquals(new int[]{12, 10}, size[0], output);
     }
 
     private static Scanner scanner(String input) {

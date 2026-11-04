@@ -1,5 +1,7 @@
 package game;
 
+import game.config.Difficulty;
+import game.config.GameConfig;
 import game.generator.GridGenerator;
 import game.model.Puzzle;
 import game.play.ConsoleGame;
@@ -12,12 +14,17 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("=== КЛАССИЧЕСКИЙ СКАНВОРД ===");
-        printAllowedSizes();
-        int[] size = chooseBoardSize(scanner);
+        printDifficultyOptions();
+        Difficulty difficulty = chooseDifficulty(scanner);
+        if (difficulty == null) return;
+
+        GameConfig profile = difficulty.config();
+        System.out.println("Выбрана сложность: " + difficulty.displayName() + ".");
+
+        int[] size = chooseBoardSize(scanner, profile);
         if (size == null) return;
 
-        int height = size[0];
-        int width = size[1];
+        GameConfig config = profile.withBoardSize(size[0], size[1]);
 
         List<String> words = List.of(
                 "АЛГОРИТМ", "ПРОГРАММА", "КОМПЬЮТЕР", "ИНТЕРНЕТ", "МОНИТОР",
@@ -29,16 +36,47 @@ public class Main {
         );
 
         GridGenerator generator = new GridGenerator();
-        Puzzle puzzle = generator.generate(height, width, words, 10);
+        Puzzle puzzle = generator.generate(
+                config.height(), config.width(), words, config.minWords());
 
         if (puzzle == null) {
-            System.out.println("Не удалось разместить минимум 10 слов. Попробуйте другой размер или добавьте слова в словарь.");
+            System.out.println("Не удалось разместить минимум " + config.minWords()
+                    + " слов. Попробуйте другой размер или добавьте слова в словарь.");
             return;
         }
 
         System.out.println("\nНаправления размещения: горизонталь, вертикаль и диагонали.");
         System.out.println("Слова могут пересекаться, только если буквы в общей клетке совпадают.");
-        new ConsoleGame(puzzle, scanner).start();
+        new ConsoleGame(puzzle, scanner, config).start();
+    }
+
+    /**
+     * Запрашивает уровень сложности. Пустой ввод выбирает обычный уровень,
+     * а некорректный ввод повторяет запрос.
+     *
+     * @return выбранная сложность или {@code null}, если ввод завершён
+     */
+    static Difficulty chooseDifficulty(Scanner scanner) {
+        while (true) {
+            System.out.print("Сложность (1-3, Enter — обычный): ");
+
+            if (!scanner.hasNextLine()) {
+                System.out.println("\nВвод завершён.");
+                return null;
+            }
+
+            String input = scanner.nextLine().trim();
+            if (input.isEmpty()) {
+                return Difficulty.NORMAL;
+            }
+
+            Difficulty difficulty = Difficulty.fromInput(input);
+            if (difficulty != null) {
+                return difficulty;
+            }
+
+            System.out.println("Неизвестная сложность. Введите 1, 2, 3 или название.");
+        }
     }
 
     /**
@@ -48,11 +86,25 @@ public class Main {
      * @return размеры сетки или {@code null}, если ввод завершён
      */
     static int[] chooseBoardSize(Scanner scanner) {
+        return readBoardSize(scanner, null, null);
+    }
+
+    /**
+     * Запрашивает размер сетки, подставляя значения из профиля сложности при
+     * пустом вводе.
+     */
+    static int[] chooseBoardSize(Scanner scanner, GameConfig defaults) {
+        return readBoardSize(scanner, defaults.height(), defaults.width());
+    }
+
+    private static int[] readBoardSize(Scanner scanner, Integer defaultHeight, Integer defaultWidth) {
         while (true) {
-            Integer height = chooseDimension("Высота сетки (10, 11 или 12): ", scanner);
+            Integer height = chooseDimension(
+                    dimensionPrompt("Высота сетки", defaultHeight), scanner, defaultHeight);
             if (height == null) return null;
 
-            Integer width = chooseDimension("Ширина сетки (10 или 11 или 12): ", scanner);
+            Integer width = chooseDimension(
+                    dimensionPrompt("Ширина сетки", defaultWidth), scanner, defaultWidth);
             if (width == null) return null;
 
             if (isAllowedSize(height, width)) {
@@ -70,6 +122,10 @@ public class Main {
      * @return введённое число или {@code null}, если ввод завершён
      */
     static Integer chooseDimension(String prompt, Scanner scanner) {
+        return chooseDimension(prompt, scanner, null);
+    }
+
+    static Integer chooseDimension(String prompt, Scanner scanner, Integer defaultValue) {
         while (true) {
             System.out.print(prompt);
 
@@ -80,6 +136,9 @@ public class Main {
 
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) {
+                if (defaultValue != null) {
+                    return defaultValue;
+                }
                 System.out.println("Введите число.");
                 continue;
             }
@@ -98,7 +157,30 @@ public class Main {
                 || (h == 10 && w == 12);
     }
 
+    private static void printDifficultyOptions() {
+        System.out.println("Уровни сложности:");
+        for (Difficulty difficulty : Difficulty.values()) {
+            GameConfig config = difficulty.config();
+            System.out.printf("  %d. %s — сетка %dx%d, минимум %d слов, %d мин., подсказок: %d.%n",
+                    difficulty.ordinal() + 1,
+                    difficulty.displayName(),
+                    config.height(),
+                    config.width(),
+                    config.minWords(),
+                    config.timeLimit().toMinutes(),
+                    config.hints());
+        }
+    }
+
     private static void printAllowedSizes() {
         System.out.println("Допустимые размеры: 10x10, 11x10, 10x11, 12x10, 10x12.");
+    }
+
+    private static String dimensionPrompt(String title, Integer defaultValue) {
+        String prompt = title + " (10, 11 или 12";
+        if (defaultValue != null) {
+            prompt += ", Enter — " + defaultValue;
+        }
+        return prompt + "): ";
     }
 }

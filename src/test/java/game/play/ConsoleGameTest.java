@@ -1,5 +1,7 @@
 package game.play;
 
+import game.config.Difficulty;
+import game.config.GameConfig;
 import game.model.Direction;
 import game.model.Placement;
 import game.model.Puzzle;
@@ -29,6 +31,13 @@ class ConsoleGameTest {
         assertContains("Игра завершена. Результат: 1 из 1", output);
         assertContains("Затраченное время:", output);
         assertFalse(output.contains("Причина завершения: истекло время."));
+    }
+
+    @Test
+    void usesTimeLimitFromGameConfig() {
+        String output = runGame(oneWordPuzzle(), "exit\n", Difficulty.HARD.config());
+
+        assertContains("На игру отведено 04:00.", output);
     }
 
     @Test
@@ -113,6 +122,25 @@ class ConsoleGameTest {
         System.setOut(captureStream);
         try {
             new ConsoleGame(puzzle, scanner, timeLimit).start();
+        } finally {
+            System.setOut(originalOut);
+            captureStream.flush();
+        }
+        return captured.toString(StandardCharsets.UTF_8);
+    }
+
+    private static String runGame(Puzzle puzzle, String input, GameConfig config) {
+        Scanner scanner = new Scanner(
+                new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)),
+                StandardCharsets.UTF_8
+        );
+
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        PrintStream captureStream = new PrintStream(captured, true, StandardCharsets.UTF_8);
+        System.setOut(captureStream);
+        try {
+            new ConsoleGame(puzzle, scanner, config).start();
         } finally {
             System.setOut(originalOut);
             captureStream.flush();
