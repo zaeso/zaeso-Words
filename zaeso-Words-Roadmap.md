@@ -39,8 +39,10 @@
 | 2026-11-03 | [`c6b7171`](https://github.com/zaeso/zaeso-Words/commit/c6b7171) | zaeso | Очистка дорожной карты от Python-обёртки, приведение файла к чистому Markdown. |
 | 2026-11-03 | [`a9c201a`](https://github.com/zaeso/zaeso-Words/commit/a9c201a) | zaeso | Переработка дорожной карты: актуальные статусы, архитектура и backlog. |
 | 2026-11-03 | [`0d0c869`](https://github.com/zaeso/zaeso-Words/commit/0d0c869) | zaeso | Улучшение обработки ввода: надёжный выбор размера и проверка слов, новые тесты. |
-| 2026-11-04 | [`dbd2fae`](https://github.com/zaeso/zaeso-Words/commit/dbd2fae) | zaeso | Детерминированная генерация по seed и полные тесты размещения: 32 теста, все 8 направлений, границы, пересечения, заполнение и нехватка места. |
-| 2026-11-04 | [`74e682b`](https://github.com/zaeso/zaeso-Words/commit/74e682b) | zaeso | Уровни сложности: `GameConfig`, профили «лёгкий/обычный/сложный», выбор в `Main`, параметры таймера и генератора из конфигурации. |
+| 2026-11-04 | [`dbd2fae`](https://github.com/zaeso/zaeso-Words/commit/dbd2fae) | KENT | Детерминированная генерация по seed и полные тесты размещения: 32 теста, все 8 направлений, границы, пересечения, заполнение и нехватка места. |
+| 2026-11-04 | [`7b3dc1a`](https://github.com/zaeso/zaeso-Words/commit/7b3dc1a) | KENT | Уточнение хеша `dbd2fae` в дорожной карте. |
+| 2026-11-04 | [`74e682b`](https://github.com/zaeso/zaeso-Words/commit/74e682b) | KENT | Уровни сложности: `GameConfig`, профили «лёгкий/обычный/сложный», выбор в `Main`, параметры таймера и генератора из конфигурации. |
+| 2026-11-04 | [`59918d7`](https://github.com/zaeso/zaeso-Words/commit/59918d7) | KENT | Уточнение хеша `74e682b` в дорожной карте. |
 | 2026-11-05 | [`245836a`](https://github.com/zaeso/zaeso-Words/commit/245836a) | zaeso | Подсказки и сохранение результатов: штраф времени, лимит, JSON-хранилище, таблица рекордов и исполняемый JAR. |
 
 ### Ключевые результаты
