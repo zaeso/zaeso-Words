@@ -1,8 +1,10 @@
 package game.result;
 
 import game.score.Score;
+import game.testing.TempDirectories;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -18,8 +20,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResultRepositoryTest {
 
-    @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    @BeforeEach
+    void createTempDir() {
+        tempDir = TempDirectories.create("result-repository");
+    }
+
+    @AfterEach
+    void deleteTempDir() {
+        TempDirectories.deleteQuietly(tempDir);
+    }
 
     @Test
     void createsNestedDirectoryAndPersistsResult() throws IOException {

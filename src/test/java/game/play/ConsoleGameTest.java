@@ -7,8 +7,10 @@ import game.model.Placement;
 import game.model.Puzzle;
 import game.result.GameResult;
 import game.result.ResultRepository;
+import game.testing.TempDirectories;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,8 +29,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConsoleGameTest {
 
-    @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    @BeforeEach
+    void createTempDir() {
+        tempDir = TempDirectories.create("console-game");
+    }
+
+    @AfterEach
+    void deleteTempDir() {
+        TempDirectories.deleteQuietly(tempDir);
+    }
 
     private ResultRepository repository() {
         return new ResultRepository(tempDir.resolve("results.json"));
