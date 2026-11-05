@@ -55,7 +55,8 @@ public final class ResultRepository {
 
     /**
      * Лучшие результаты для конкретных размера сетки и сложности: больше
-     * найденных слов, затем меньше затраченное время, затем более ранняя игра.
+     * очков, затем больше найденных слов, затем меньше затраченное время,
+     * затем более ранняя игра. Записи без счёта считаются худшими.
      */
     public List<GameResult> top(int height, int width, String difficulty, int limit) {
         if (limit <= 0) return List.of();
@@ -64,7 +65,9 @@ public final class ResultRepository {
                 .filter(result -> result.height() == height && result.width() == width)
                 .filter(result -> Objects.equals(result.difficulty(), difficulty))
                 .sorted(Comparator
-                        .comparingInt(GameResult::foundWords).reversed()
+                        .comparingInt(GameResult::totalScore).reversed()
+                        .thenComparing(Comparator
+                                .comparingInt(GameResult::foundWords).reversed())
                         .thenComparingLong(GameResult::elapsedSeconds)
                         .thenComparingLong(GameResult::finishedAtEpochSeconds))
                 .limit(limit)

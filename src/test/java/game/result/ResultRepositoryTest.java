@@ -1,5 +1,6 @@
 package game.result;
 
+import game.score.Score;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -12,6 +13,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResultRepositoryTest {
@@ -71,8 +73,44 @@ class ResultRepositoryTest {
     }
 
     @Test
-    void limitsLeaderboardSize() throws IOException {
+    void ranksByScoreBeforeFoundWords() throws IOException {
         ResultRepository repository = new ResultRepository(tempDir.resolve("results.json"));
+        repository.save(new GameResult(1, "Обычный", 10, 10, 5, 10, 100, 0,
+                new Score(500, 0, 0, 0), "выход игрока"));
+        repository.save(new GameResult(2, "Обычный", 10, 10, 10, 10, 200, 0,
+                new Score(100, 0, 0, 0), "все слова найдены"));
+
+        List<GameResult> top = repository.top(10, 10, "Обычный", 10);
+
+        assertEquals(1, top.get(0).finishedAtEpochSeconds());
+        assertEquals(2, top.get(1).finishedAtEpochSeconds());
+    }
+
+    @Test
+    void loadsOldRecordsWithoutScore() throws IOException {
+        Path file = tempDir.resolve("results.json");
+        Files.writeString(file, """
+                [{
+                  "finishedAtEpochSeconds": 1,
+                  "difficulty": "Обычный",
+                  "height": 10,
+                  "width": 10,
+                  "foundWords": 3,
+                  "totalWords": 5,
+                  "elapsedSeconds": 60,
+                  "hintsUsed": 1,
+                  "finishReason": "выход игрока"
+                }]
+                """, StandardCharsets.UTF_8);
+
+        GameResult result = new ResultRepository(file).load().get(0);
+
+        assertNull(result.score());
+        assertEquals(0, result.totalScore());
+    }
+
+    @Test
+    void limitsLeaderboardSize() throws IOException {        ResultRepository repository = new ResultRepository(tempDir.resolve("results.json"));
         for (long i = 1; i <= 5; i++) {
             repository.save(result(i, "Обычный", 10, 10, 10, 10, i, 0));
         }
@@ -106,6 +144,7 @@ class ResultRepositoryTest {
         String json = Files.readString(file, StandardCharsets.UTF_8);
         assertTrue(json.contains("\"difficulty\""), json);
         assertTrue(json.contains("\"Обычный\""), json);
+        assertTrue(json.contains("\"score\""), json);
         assertFalse(json.isBlank(), "JSON не должен быть пустым");
     }
 

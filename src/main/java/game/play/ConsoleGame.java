@@ -5,6 +5,8 @@ import game.model.Placement;
 import game.model.Puzzle;
 import game.result.GameResult;
 import game.result.ResultRepository;
+import game.score.Score;
+import game.score.ScoreCalculator;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -31,6 +33,7 @@ public class ConsoleGame {
     private final Set<String> hintedWords = new HashSet<>();
     private final GameTimer timer;
     private int hintsUsed;
+    private int mistakes;
 
     public ConsoleGame(Puzzle puzzle, Scanner scanner) {
         this(puzzle, scanner, defaultConfig(puzzle), "Обычный", ResultRepository.defaultRepository());
@@ -114,8 +117,10 @@ public class ConsoleGame {
                 } else if (answer.length() > maxWordLength) {
                     System.out.println("Слово слишком длинное.");
                 } else if (!allWords.contains(answer)) {
+                    mistakes++;
                     System.out.println("Такого слова нет в списке.");
                 } else if (found.contains(answer)) {
+                    mistakes++;
                     System.out.println("Это слово уже найдено.");
                 } else {
                     found.add(answer);
@@ -180,6 +185,15 @@ public class ConsoleGame {
     private void saveAndShowResults(Set<String> allWords, boolean timeExpired) {
         int height = puzzle.getGrid().length;
         int width = puzzle.getGrid()[0].length;
+        Score score = ScoreCalculator.calculate(
+                found,
+                allWords.size(),
+                timer.remainingSeconds(),
+                mistakes,
+                hintsUsed
+        );
+        printScore(score);
+
         String reason;
         if (found.size() == allWords.size()) {
             reason = "все слова найдены";
@@ -198,6 +212,7 @@ public class ConsoleGame {
                 allWords.size(),
                 timer.elapsedSeconds(),
                 hintsUsed,
+                score,
                 reason
         );
 
@@ -208,6 +223,14 @@ public class ConsoleGame {
         }
 
         printLeaderboard(height, width);
+    }
+
+    private void printScore(Score score) {
+        System.out.println("\nСчёт: " + score.total());
+        System.out.println("  Буквы: +" + score.wordPoints());
+        System.out.println("  Время: +" + score.timeBonus());
+        System.out.println("  Ошибки: -" + score.mistakePenalty());
+        System.out.println("  Подсказки: -" + score.hintPenalty());
     }
 
     private void printLeaderboard(int height, int width) {
@@ -223,11 +246,12 @@ public class ConsoleGame {
             String date = Instant.ofEpochSecond(result.finishedAtEpochSeconds())
                     .atZone(ZoneId.systemDefault())
                     .format(DATE_FORMAT);
-            System.out.printf("%2d. %d/%d (%d%%), время %s, подсказок: %d, %s%n",
+            System.out.printf("%2d. %d/%d (%d%%), очки: %d, время %s, подсказок: %d, %s%n",
                     i + 1,
                     result.foundWords(),
                     result.totalWords(),
                     result.completionPercent(),
+                    result.totalScore(),
                     GameTimer.format(result.elapsedSeconds()),
                     result.hintsUsed(),
                     date);

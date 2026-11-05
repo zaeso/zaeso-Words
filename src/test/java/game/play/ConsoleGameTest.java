@@ -42,6 +42,10 @@ class ConsoleGameTest {
         assertContains("Верно! Найдено: 1 из 1", output);
         assertContains("Игра завершена. Результат: 1 из 1", output);
         assertContains("Затраченное время:", output);
+        assertContains("Счёт: ", output);
+        assertContains("  Буквы: +35", output);
+        assertContains("  Ошибки: -0", output);
+        assertContains("  Подсказки: -0", output);
         assertFalse(output.contains("Причина завершения: истекло время."));
     }
 
@@ -106,6 +110,15 @@ class ConsoleGameTest {
 
         assertContains("Это слово уже найдено.", output);
         assertContains("Игра завершена. Результат: 2 из 2", output);
+        assertContains("  Ошибки: -5", output);
+    }
+
+    @Test
+    void countsWrongWordsAsMistakes() {
+        String output = runGame("дом\nкот\n", Duration.ofMinutes(1));
+
+        assertContains("Такого слова нет в списке.", output);
+        assertContains("  Ошибки: -5", output);
     }
 
     @Test
@@ -116,6 +129,7 @@ class ConsoleGameTest {
         assertContains("слово из 3 букв начинается с «К»", output);
         assertContains("направление — вправо", output);
         assertFalse(output.contains("начинается с «К», направление — вправо. КОТ"), output);
+        assertContains("  Подсказки: -50", output);
         assertContains("Верно! Найдено: 1 из 1", output);
     }
 
@@ -169,6 +183,11 @@ class ConsoleGameTest {
         assertEquals(0, result.hintsUsed());
         assertTrue(result.completed());
         assertEquals("все слова найдены", result.finishReason());
+        org.junit.jupiter.api.Assertions.assertNotNull(result.score());
+        assertEquals(35, result.score().wordPoints());
+        assertEquals(0, result.score().mistakePenalty());
+        assertEquals(0, result.score().hintPenalty());
+        assertTrue(result.totalScore() > 0);
     }
 
     @Test
@@ -177,6 +196,8 @@ class ConsoleGameTest {
 
         GameResult result = repository().load().get(0);
         assertEquals(1, result.hintsUsed());
+        org.junit.jupiter.api.Assertions.assertNotNull(result.score());
+        assertEquals(50, result.score().hintPenalty());
     }
 
     @Test
@@ -189,6 +210,7 @@ class ConsoleGameTest {
         String output = runGame("exit\n", hintConfig(2), repository, "Тест");
 
         assertContains("Лучшие результаты — Тест, 1x3:", output);
+        assertContains("очки: ", output);
         assertContains("время 00:10", output);
         assertContains("время 01:40", output);
         assertTrue(output.indexOf("время 00:10") < output.indexOf("время 01:40"),
