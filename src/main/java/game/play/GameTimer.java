@@ -26,7 +26,6 @@ public final class GameTimer {
         this.limitSeconds = limit.getSeconds();
     }
 
-    /** Запускает отсчёт. Повторный вызов во время работы игнорируется. */
     public synchronized void start() {
         if (running) return;
 
@@ -36,7 +35,6 @@ public final class GameTimer {
         running = true;
     }
 
-    /** Останавливает отсчёт. Повторный вызов безопасен. */
     public synchronized void stop() {
         if (!running) return;
 
@@ -48,7 +46,6 @@ public final class GameTimer {
         return running;
     }
 
-    /** Прошло ли время, отведённое на игру. */
     public synchronized boolean isExpired() {
         return started && consumedNanos() >= limitNanos;
     }
@@ -93,7 +90,6 @@ public final class GameTimer {
         return Math.max(0, elapsedNanos() + penaltyNanos);
     }
 
-    /** Форматирует количество секунд как {@code MM:SS}. */
     public static String format(long totalSeconds) {
         long safeSeconds = Math.max(0, totalSeconds);
         return String.format("%02d:%02d", safeSeconds / 60, safeSeconds % 60);

@@ -1,39 +1,40 @@
 package game.play;
 
 import game.config.GameConfig;
-import game.model.Placement;
 import game.model.Puzzle;
 import game.result.GameResult;
 import game.result.ResultRepository;
 import game.score.Score;
-import game.score.ScoreCalculator;
+import game.session.GameSession;
+import game.session.GameSession.FinishReason;
+import game.session.GameSession.HintResult;
+import game.session.GameSession.HintStatus;
+import game.session.GameSession.WordResult;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Scanner;
+import java.util.Set;
 
+/**
+ * Отладочный консольный интерфейс. Игровая логика находится в
+ * {@link GameSession} и используется также графическим интерфейсом.
+ */
 public class ConsoleGame {
     private static final Duration DEFAULT_TIME_LIMIT = Duration.ofMinutes(5);
     private static final int DEFAULT_HINTS = 2;
-    private static final Duration HINT_PENALTY = Duration.ofSeconds(30);
     private static final int LEADERBOARD_SIZE = 5;
-    private static final Pattern CYRILLIC_WORD = Pattern.compile("[А-ЯЁ]+");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    private final Puzzle puzzle;
     private final Scanner scanner;
-    private final GameConfig config;
-    private final String difficultyName;
+    private final GameSession session;
     private final ResultRepository resultRepository;
-    private final Set<String> found = new HashSet<>();
-    private final Set<String> hintedWords = new HashSet<>();
-    private final GameTimer timer;
-    private int hintsUsed;
-    private int mistakes;
 
     public ConsoleGame(Puzzle puzzle, Scanner scanner) {
         this(puzzle, scanner, defaultConfig(puzzle), "Обычный", ResultRepository.defaultRepository());
@@ -44,103 +45,91 @@ public class ConsoleGame {
                 ResultRepository.defaultRepository());
     }
 
-    /**
-     * Создаёт игру с параметрами выбранного уровня сложности.
-     */
     public ConsoleGame(Puzzle puzzle, Scanner scanner, GameConfig config) {
         this(puzzle, scanner, config, "Пользовательская", ResultRepository.defaultRepository());
     }
 
-    /**
-     * Создаёт игру с параметрами сложности и её названием для таблицы рекордов.
-     */
     public ConsoleGame(Puzzle puzzle, Scanner scanner, GameConfig config, String difficultyName) {
         this(puzzle, scanner, config, difficultyName, ResultRepository.defaultRepository());
     }
 
     ConsoleGame(Puzzle puzzle, Scanner scanner, GameConfig config,
                 String difficultyName, ResultRepository resultRepository) {
-        this.puzzle = Objects.requireNonNull(puzzle, "puzzle");
         this.scanner = Objects.requireNonNull(scanner, "scanner");
-        this.config = Objects.requireNonNull(config, "config");
-        this.difficultyName = Objects.requireNonNull(difficultyName, "difficultyName");
         this.resultRepository = Objects.requireNonNull(resultRepository, "resultRepository");
-        this.timer = new GameTimer(config.timeLimit());
+        this.session = new GameSession(puzzle, config, difficultyName);
     }
 
     public void start() {
-        Set<String> allWords = new LinkedHashSet<>(puzzle.getWords());
-        int maxWordLength = allWords.stream().mapToInt(String::length).max().orElse(0);
+        Set<String> allWords = new LinkedHashSet<>(session.allWords());
         System.out.println("\nНайди спрятанные слова. Вводи слово целиком.");
-        System.out.println("На игру отведено " + GameTimer.format(timer.getLimitSeconds()) + ".");
-        if (config.hints() > 0) {
-            System.out.println("Доступно подсказок: " + config.hints()
+        System.out.println("На игру отведено " + GameTimer.format(session.limitSeconds()) + ".");
+        if (session.hintsLimit() > 0) {
+            System.out.println("Доступно подсказок: " + session.hintsLimit()
                     + ". HINT или ПОДСКАЗКА открывает букву и направление за "
-                    + GameTimer.format(HINT_PENALTY.toSeconds()) + ".");
+                    + GameTimer.format(GameSession.HINT_PENALTY.toSeconds()) + ".");
         }
         printGrid();
         printWordList(allWords);
 
-        timer.start();
+        session.start();
         Thread monitor = startTimeMonitor();
         boolean timeExpired = false;
 
         try {
-            while (found.size() < allWords.size()) {
-                if (timer.isExpired()) {
+            while (!session.completed()) {
+                if (session.isExpired()) {
                     timeExpired = true;
                     break;
                 }
 
                 System.out.printf("%nСлово (осталось %s; HINT — подсказка, EXIT — выход): ",
-                        GameTimer.format(timer.remainingSeconds()));
-                String answer = scanner.nextLine().trim().toUpperCase(Locale.ROOT);
+                        GameTimer.format(session.remainingSeconds()));
+                String answer = scanner.nextLine();
 
-                if (timer.isExpired()) {
+                if (session.isExpired()) {
                     timeExpired = true;
                     break;
                 }
 
-                if (answer.equals("EXIT")) break;
-                if (answer.equals("HINT") || answer.equals("ПОДСКАЗКА")) {
+                if (session.isExitCommand(answer)) break;
+                if (session.isHintCommand(answer)) {
                     useHint();
-                    if (timer.isExpired()) {
+                    if (session.isExpired()) {
                         timeExpired = true;
                         break;
                     }
                     continue;
                 }
-                if (answer.isEmpty()) {
-                    System.out.println("Пустой ввод. Введите слово целиком.");
-                } else if (!CYRILLIC_WORD.matcher(answer).matches()) {
-                    System.out.println("Используйте только русские буквы.");
-                } else if (answer.length() > maxWordLength) {
-                    System.out.println("Слово слишком длинное.");
-                } else if (!allWords.contains(answer)) {
-                    mistakes++;
-                    System.out.println("Такого слова нет в списке.");
-                } else if (found.contains(answer)) {
-                    mistakes++;
-                    System.out.println("Это слово уже найдено.");
-                } else {
-                    found.add(answer);
-                    System.out.println("Верно! Найдено: " + found.size() + " из " + allWords.size());
+
+                switch (session.submitWord(answer)) {
+                    case EMPTY -> System.out.println("Пустой ввод. Введите слово целиком.");
+                    case NON_CYRILLIC -> System.out.println("Используйте только русские буквы.");
+                    case TOO_LONG -> System.out.println("Слово слишком длинное.");
+                    case NOT_IN_LIST -> System.out.println("Такого слова нет в списке.");
+                    case ALREADY_FOUND -> System.out.println("Это слово уже найдено.");
+                    case FOUND -> System.out.println("Верно! Найдено: "
+                            + session.foundCount() + " из " + session.totalWords());
                 }
             }
         } finally {
-            timer.stop();
+            session.stop();
             monitor.interrupt();
         }
 
-        System.out.println("\nИгра завершена. Результат: " + found.size() + " из " + allWords.size());
-        System.out.println("Затраченное время: " + GameTimer.format(timer.elapsedSeconds()) + ".");
+        System.out.println("\nИгра завершена. Результат: "
+                + session.foundCount() + " из " + session.totalWords());
+        System.out.println("Затраченное время: " + GameTimer.format(session.elapsedSeconds()) + ".");
         if (timeExpired) {
             System.out.println("Причина завершения: истекло время.");
         }
         System.out.println("Оставшиеся слова: ");
-        allWords.stream().filter(w -> !found.contains(w)).forEach(System.out::println);
+        session.remainingWords().forEach(System.out::println);
 
-        saveAndShowResults(allWords, timeExpired);
+        FinishReason reason = session.completed()
+                ? FinishReason.ALL_WORDS_FOUND
+                : timeExpired ? FinishReason.TIME_EXPIRED : FinishReason.PLAYER_EXIT;
+        saveAndShowResults(session.finish(reason));
     }
 
     /**
@@ -148,73 +137,34 @@ public class ConsoleGame {
      * За подсказку списывается время; повторно за то же слово штраф не берётся.
      */
     private void useHint() {
-        if (config.hints() == 0) {
+        HintResult hint = session.useHint();
+        if (hint.status() == HintStatus.DISABLED) {
             System.out.println("В этом режиме подсказки недоступны.");
             return;
         }
-        if (hintsUsed >= config.hints()) {
-            System.out.println("Лимит подсказок исчерпан: " + config.hints() + " из " + config.hints() + ".");
+        if (hint.status() == HintStatus.LIMIT_REACHED) {
+            System.out.println("Лимит подсказок исчерпан: "
+                    + hint.limit() + " из " + hint.limit() + ".");
             return;
         }
-
-        Optional<Placement> candidate = puzzle.getPlacements().stream()
-                .filter(placement -> !found.contains(placement.word()))
-                .filter(placement -> !hintedWords.contains(placement.word()))
-                .max(Comparator.comparingInt(placement -> placement.word().length()));
-
-        if (candidate.isEmpty()) {
+        if (hint.status() == HintStatus.NO_CANDIDATES) {
             System.out.println("Для оставшихся слов подсказки уже выданы.");
             return;
         }
 
-        Placement placement = candidate.get();
-        hintedWords.add(placement.word());
-        hintsUsed++;
-        timer.penalize(HINT_PENALTY);
-
+        var placement = hint.placement();
         System.out.printf("Подсказка %d из %d (минус %s): слово из %d букв начинается с «%c», направление — %s.%n",
-                hintsUsed,
-                config.hints(),
-                GameTimer.format(HINT_PENALTY.toSeconds()),
+                hint.used(),
+                hint.limit(),
+                GameTimer.format(GameSession.HINT_PENALTY.toSeconds()),
                 placement.word().length(),
                 placement.word().charAt(0),
                 placement.direction().description());
-        System.out.println("Осталось времени: " + GameTimer.format(timer.remainingSeconds()) + ".");
+        System.out.println("Осталось времени: " + GameTimer.format(session.remainingSeconds()) + ".");
     }
 
-    private void saveAndShowResults(Set<String> allWords, boolean timeExpired) {
-        int height = puzzle.getGrid().length;
-        int width = puzzle.getGrid()[0].length;
-        Score score = ScoreCalculator.calculate(
-                found,
-                allWords.size(),
-                timer.remainingSeconds(),
-                mistakes,
-                hintsUsed
-        );
-        printScore(score);
-
-        String reason;
-        if (found.size() == allWords.size()) {
-            reason = "все слова найдены";
-        } else if (timeExpired) {
-            reason = "время вышло";
-        } else {
-            reason = "выход игрока";
-        }
-
-        GameResult result = new GameResult(
-                Instant.now().getEpochSecond(),
-                difficultyName,
-                height,
-                width,
-                found.size(),
-                allWords.size(),
-                timer.elapsedSeconds(),
-                hintsUsed,
-                score,
-                reason
-        );
+    private void saveAndShowResults(GameResult result) {
+        printScore(result);
 
         try {
             resultRepository.save(result);
@@ -222,11 +172,12 @@ public class ConsoleGame {
             System.out.println("Не удалось сохранить результат: " + e.getMessage());
         }
 
-        printLeaderboard(height, width);
+        printLeaderboard(result.height(), result.width());
     }
 
-    private void printScore(Score score) {
-        System.out.println("\nСчёт: " + score.total());
+    private void printScore(GameResult result) {
+        Score score = result.score();
+        System.out.println("\nСчёт: " + result.totalScore());
         System.out.println("  Буквы: +" + score.wordPoints());
         System.out.println("  Время: +" + score.timeBonus());
         System.out.println("  Ошибки: -" + score.mistakePenalty());
@@ -234,8 +185,10 @@ public class ConsoleGame {
     }
 
     private void printLeaderboard(int height, int width) {
-        List<GameResult> top = resultRepository.top(height, width, difficultyName, LEADERBOARD_SIZE);
-        System.out.println("\nЛучшие результаты — " + difficultyName + ", " + height + "x" + width + ":");
+        List<GameResult> top = resultRepository.top(
+                height, width, session.difficultyName(), LEADERBOARD_SIZE);
+        System.out.println("\nЛучшие результаты — " + session.difficultyName()
+                + ", " + height + "x" + width + ":");
         if (top.isEmpty()) {
             System.out.println("Пока нет сохранённых игр.");
             return;
@@ -265,14 +218,14 @@ public class ConsoleGame {
     private Thread startTimeMonitor() {
         Thread monitor = new Thread(() -> {
             long lastNotified = -1;
-            while (timer.isRunning()) {
-                if (timer.isExpired()) {
+            while (session.isRunning()) {
+                if (session.isExpired()) {
                     System.out.println("\n[ТАЙМЕР] Время вышло! Нажмите Enter, чтобы увидеть результат.");
                     return;
                 }
 
-                long remaining = timer.remainingSeconds();
-                if (timer.elapsedSeconds() > 0
+                long remaining = session.remainingSeconds();
+                if (session.elapsedSeconds() > 0
                         && remaining != lastNotified
                         && (remaining == 60 || remaining == 30 || remaining <= 10)) {
                     System.out.printf("%n[ТАЙМЕР] Осталось %s.%n", GameTimer.format(remaining));
@@ -304,7 +257,7 @@ public class ConsoleGame {
     }
 
     private void printGrid() {
-        char[][] grid = puzzle.getGrid();
+        char[][] grid = session.grid();
         System.out.print("    ");
         for (int c = 1; c <= grid[0].length; c++) System.out.printf("%2d ", c);
         System.out.println();
@@ -321,7 +274,7 @@ public class ConsoleGame {
     private void printWordList(Set<String> words) {
         System.out.println("\nСписок слов:");
         for (String word : words) {
-            System.out.print((found.contains(word) ? "[+] " : "[ ] ") + word + "   ");
+            System.out.print((session.isFound(word) ? "[+] " : "[ ] ") + word + "   ");
         }
         System.out.println();
     }

@@ -10,9 +10,6 @@ package game.score;
  */
 public record Score(int wordPoints, int timeBonus, int mistakePenalty, int hintPenalty) {
 
-    /**
-     * Итоговый счёт не может быть отрицательным.
-     */
     public int total() {
         return Math.max(0, wordPoints + timeBonus - mistakePenalty - hintPenalty);
     }

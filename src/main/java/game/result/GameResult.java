@@ -28,9 +28,6 @@ public record GameResult(
         Score score,
         String finishReason
 ) {
-    /**
-     * Конструктор для записей без счёта, например для старых JSON-файлов и тестов.
-     */
     public GameResult(long finishedAtEpochSeconds, String difficulty, int height, int width,
                       int foundWords, int totalWords, long elapsedSeconds, int hintsUsed,
                       String finishReason) {
@@ -47,9 +44,6 @@ public record GameResult(
         return (int) Math.round(foundWords * 100.0 / totalWords);
     }
 
-    /**
-     * Итоговый счёт или {@code 0}, если запись сделана до появления очков.
-     */
     public int totalScore() {
         return score == null ? 0 : score.total();
     }

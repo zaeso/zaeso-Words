@@ -2,15 +2,41 @@ package game;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
+import game.dictionary.WordBank;
 import game.generator.GridGenerator;
 import game.model.Puzzle;
 import game.play.ConsoleGame;
+import game.ui.MainWindow;
 
-import java.util.List;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import java.awt.GraphicsEnvironment;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
+        boolean console = Arrays.stream(args)
+                .anyMatch(argument -> argument.equalsIgnoreCase("--console"));
+
+        if (console) {
+            runConsole();
+            return;
+        }
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("Графический интерфейс недоступен. Запустите с --console.");
+            return;
+        }
+
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {
+            // Остаётся стандартное оформление Swing.
+        }
+        SwingUtilities.invokeLater(() -> new MainWindow().setVisible(true));
+    }
+
+    private static void runConsole() {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("=== КЛАССИЧЕСКИЙ СКАНВОРД ===");
@@ -26,18 +52,9 @@ public class Main {
 
         GameConfig config = profile.withBoardSize(size[0], size[1]);
 
-        List<String> words = List.of(
-                "АЛГОРИТМ", "ПРОГРАММА", "КОМПЬЮТЕР", "ИНТЕРНЕТ", "МОНИТОР",
-                "КЛАВИАТУРА", "ПРОЦЕССОР", "ПЕРЕМЕННАЯ", "МАССИВ", "ЦИКЛ",
-                "МЕТОД", "КЛАСС", "ОБЪЕКТ", "СТРОКА", "ФУНКЦИЯ",
-                "ПИТОН", "ДЖАВА", "КОД", "СЕРВЕР", "БРАУЗЕР",
-                "СИСТЕМА", "ДАННЫЕ", "ФАЙЛ", "ПАПКА", "СЕТЬ",
-                "РАЗРАБОТКА", "ПРОЕКТ", "ПАМЯТЬ", "ЛОГИКА", "КОМПИЛЯТОР"
-        );
-
         GridGenerator generator = new GridGenerator();
         Puzzle puzzle = generator.generate(
-                config.height(), config.width(), words, config.minWords());
+                config.height(), config.width(), WordBank.WORDS, config.minWords());
 
         if (puzzle == null) {
             System.out.println("Не удалось разместить минимум " + config.minWords()
@@ -50,12 +67,6 @@ public class Main {
         new ConsoleGame(puzzle, scanner, config, difficulty.displayName()).start();
     }
 
-    /**
-     * Запрашивает уровень сложности. Пустой ввод выбирает обычный уровень,
-     * а некорректный ввод повторяет запрос.
-     *
-     * @return выбранная сложность или {@code null}, если ввод завершён
-     */
     static Difficulty chooseDifficulty(Scanner scanner) {
         while (true) {
             System.out.print("Сложность (1-3, Enter — обычный): ");
@@ -79,20 +90,10 @@ public class Main {
         }
     }
 
-    /**
-     * Запрашивает допустимую комбинацию высоты и ширины. При ошибке оба
-     * значения запрашиваются заново.
-     *
-     * @return размеры сетки или {@code null}, если ввод завершён
-     */
     static int[] chooseBoardSize(Scanner scanner) {
         return readBoardSize(scanner, null, null);
     }
 
-    /**
-     * Запрашивает размер сетки, подставляя значения из профиля сложности при
-     * пустом вводе.
-     */
     static int[] chooseBoardSize(Scanner scanner, GameConfig defaults) {
         return readBoardSize(scanner, defaults.height(), defaults.width());
     }
@@ -116,11 +117,6 @@ public class Main {
         }
     }
 
-    /**
-     * Читает целое число и повторяет запрос при пустом или некорректном вводе.
-     *
-     * @return введённое число или {@code null}, если ввод завершён
-     */
     static Integer chooseDimension(String prompt, Scanner scanner) {
         return chooseDimension(prompt, scanner, null);
     }
