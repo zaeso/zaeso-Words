@@ -47,7 +47,7 @@ public class Main {
 
         System.out.println("\nНаправления размещения: горизонталь, вертикаль и диагонали.");
         System.out.println("Слова могут пересекаться, только если буквы в общей клетке совпадают.");
-        new ConsoleGame(puzzle, scanner, config).start();
+        new ConsoleGame(puzzle, scanner, config, difficulty.displayName()).start();
     }
 
     /**

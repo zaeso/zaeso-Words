@@ -65,4 +65,48 @@ class GameTimerTest {
         assertThrows(IllegalArgumentException.class, () -> new GameTimer(Duration.ofSeconds(-1)));
         assertThrows(IllegalArgumentException.class, () -> new GameTimer(null));
     }
+
+    @Test
+    void penaltyReducesRemainingTimeWithoutChangingElapsed() {
+        GameTimer timer = new GameTimer(Duration.ofMinutes(1));
+        timer.start();
+
+        timer.penalize(Duration.ofSeconds(30));
+
+        assertEquals(30, timer.remainingSeconds());
+        assertEquals(0, timer.elapsedSeconds());
+        assertFalse(timer.isExpired());
+    }
+
+    @Test
+    void penaltyCanExpireTimer() {
+        GameTimer timer = new GameTimer(Duration.ofSeconds(20));
+        timer.start();
+
+        timer.penalize(Duration.ofSeconds(20));
+
+        assertTrue(timer.isExpired());
+        assertEquals(0, timer.remainingSeconds());
+        assertEquals(0, timer.elapsedSeconds());
+    }
+
+    @Test
+    void penaltiesAccumulate() {
+        GameTimer timer = new GameTimer(Duration.ofMinutes(2));
+        timer.start();
+
+        timer.penalize(Duration.ofSeconds(30));
+        timer.penalize(Duration.ofSeconds(15));
+
+        assertEquals(75, timer.remainingSeconds());
+    }
+
+    @Test
+    void rejectsNonPositivePenalty() {
+        GameTimer timer = new GameTimer(Duration.ofMinutes(1));
+
+        assertThrows(IllegalArgumentException.class, () -> timer.penalize(Duration.ZERO));
+        assertThrows(IllegalArgumentException.class, () -> timer.penalize(Duration.ofSeconds(-1)));
+        assertThrows(IllegalArgumentException.class, () -> timer.penalize(null));
+    }
 }

@@ -14,6 +14,7 @@ public final class GameTimer {
 
     private long startedAt;
     private long stoppedAt;
+    private long penaltyNanos;
     private boolean started;
     private boolean running;
 
@@ -49,7 +50,18 @@ public final class GameTimer {
 
     /** Прошло ли время, отведённое на игру. */
     public synchronized boolean isExpired() {
-        return started && elapsedNanos() >= limitNanos;
+        return started && consumedNanos() >= limitNanos;
+    }
+
+    /**
+     * Уменьшает оставшееся время, например за использование подсказки.
+     * На фактически затраченное время штраф не влияет.
+     */
+    public synchronized void penalize(Duration penalty) {
+        if (penalty == null || penalty.isZero() || penalty.isNegative()) {
+            throw new IllegalArgumentException("Штраф должен быть положительным.");
+        }
+        penaltyNanos += penalty.toNanos();
     }
 
     public synchronized long elapsedSeconds() {
@@ -61,7 +73,7 @@ public final class GameTimer {
      * секунде отображалось {@code 00:01}, а не {@code 00:00}.
      */
     public synchronized long remainingSeconds() {
-        long remainingNanos = limitNanos - elapsedNanos();
+        long remainingNanos = limitNanos - consumedNanos();
         if (remainingNanos <= 0) return 0;
         return (remainingNanos + 999_999_999L) / 1_000_000_000L;
     }
@@ -75,6 +87,10 @@ public final class GameTimer {
 
         long end = running ? System.nanoTime() : stoppedAt;
         return Math.max(0, end - startedAt);
+    }
+
+    private long consumedNanos() {
+        return Math.max(0, elapsedNanos() + penaltyNanos);
     }
 
     /** Форматирует количество секунд как {@code MM:SS}. */

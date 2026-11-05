@@ -11,4 +11,17 @@ public record Direction(int rowStep, int colStep) {
             new Direction(-1, 1),  // диагональ вверх-вправо
             new Direction(-1, -1)  // диагональ вверх-влево
     };
+
+    /** Человекочитаемое название направления. */
+    public String description() {
+        if (rowStep == 0 && colStep == 1) return "вправо";
+        if (rowStep == 0 && colStep == -1) return "влево";
+        if (rowStep == 1 && colStep == 0) return "вниз";
+        if (rowStep == -1 && colStep == 0) return "вверх";
+        if (rowStep == 1 && colStep == 1) return "по диагонали вниз-вправо";
+        if (rowStep == 1 && colStep == -1) return "по диагонали вниз-влево";
+        if (rowStep == -1 && colStep == 1) return "по диагонали вверх-вправо";
+        if (rowStep == -1 && colStep == -1) return "по диагонали вверх-влево";
+        throw new IllegalStateException("Неизвестное направление: " + rowStep + ":" + colStep);
+    }
 }
