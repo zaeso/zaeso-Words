@@ -2,8 +2,9 @@ package game;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
-import game.dictionary.WordBank;
+import game.dictionary.WordCategory;
 import game.generator.GridGenerator;
+import game.generator.GridGenerator.GenerationResult;
 import game.model.Puzzle;
 import game.play.ConsoleGame;
 import game.ui.MainWindow;
@@ -12,6 +13,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.GraphicsEnvironment;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -40,6 +42,11 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("=== КЛАССИЧЕСКИЙ СКАНВОРД ===");
+        printCategoryOptions();
+        WordCategory category = chooseCategory(scanner);
+        if (category == null) return;
+        System.out.println("Выбрана категория: " + category.displayName() + ".");
+
         printDifficultyOptions();
         Difficulty difficulty = chooseDifficulty(scanner);
         if (difficulty == null) return;
@@ -52,19 +59,42 @@ public class Main {
 
         GameConfig config = profile.withBoardSize(size[0], size[1]);
 
-        GridGenerator generator = new GridGenerator();
-        Puzzle puzzle = generator.generate(
-                config.height(), config.width(), WordBank.WORDS, config.minWords());
+        GenerationResult generation = new GridGenerator().generateChecked(
+                config.height(), config.width(), category.words(), config.minWords());
 
-        if (puzzle == null) {
-            System.out.println("Не удалось разместить минимум " + config.minWords()
-                    + " слов. Попробуйте другой размер или добавьте слова в словарь.");
+        if (!generation.ok()) {
+            System.out.println(generation.error());
             return;
         }
+        Puzzle puzzle = generation.puzzle();
 
         System.out.println("\nНаправления размещения: горизонталь, вертикаль и диагонали.");
         System.out.println("Слова могут пересекаться, только если буквы в общей клетке совпадают.");
-        new ConsoleGame(puzzle, scanner, config, difficulty.displayName()).start();
+        new ConsoleGame(puzzle, scanner, config, category.displayName()).start();
+    }
+
+    static WordCategory chooseCategory(Scanner scanner) {
+        while (true) {
+            System.out.print("Категория (1-" + WordCategory.all().size()
+                    + ", Enter — " + WordCategory.defaultCategory().displayName() + "): ");
+
+            if (!scanner.hasNextLine()) {
+                System.out.println("\nВвод завершён.");
+                return null;
+            }
+
+            String input = scanner.nextLine().trim();
+            if (input.isEmpty()) {
+                return WordCategory.defaultCategory();
+            }
+
+            WordCategory category = WordCategory.fromInput(input);
+            if (category != null) {
+                return category;
+            }
+
+            System.out.println("Неизвестная категория. Введите номер или название.");
+        }
     }
 
     static Difficulty chooseDifficulty(Scanner scanner) {
@@ -151,6 +181,16 @@ public class Main {
         return (h == 10 && w == 10) || (h == 11 && w == 10)
                 || (h == 10 && w == 11) || (h == 12 && w == 10)
                 || (h == 10 && w == 12);
+    }
+
+    private static void printCategoryOptions() {
+        System.out.println("Категории слов:");
+        List<WordCategory> categories = WordCategory.all();
+        for (int i = 0; i < categories.size(); i++) {
+            WordCategory category = categories.get(i);
+            System.out.printf("  %d. %s — %d слов.%n",
+                    i + 1, category.displayName(), category.words().size());
+        }
     }
 
     private static void printDifficultyOptions() {

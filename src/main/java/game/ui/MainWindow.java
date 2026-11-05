@@ -2,6 +2,7 @@ package game.ui;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
+import game.dictionary.WordCategory;
 import game.play.GameTimer;
 import game.result.GameResult;
 import game.result.ResultRepository;
@@ -43,6 +44,7 @@ public final class MainWindow extends JFrame {
     private final JLabel finishTotal = new JLabel();
 
     private Difficulty difficulty = Difficulty.NORMAL;
+    private WordCategory category = WordCategory.defaultCategory();
     private int round = 1;
     private int totalScore;
 
@@ -130,14 +132,14 @@ public final class MainWindow extends JFrame {
         card.add(title);
         card.add(Box.createVerticalStrut(6));
 
-        JLabel note = new JLabel("Размер сетки, время и подсказки задаёт сложность.");
+        JLabel note = new JLabel("Категория задаёт словарь, сложность — размер, время и подсказки.");
         note.setFont(Theme.BODY);
         note.setForeground(Theme.MUTED);
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(note);
         card.add(Box.createVerticalStrut(18));
 
-        ButtonGroup group = new ButtonGroup();
+        ButtonGroup difficultyGroup = new ButtonGroup();
         for (Difficulty value : Difficulty.values()) {
             GameConfig config = value.config();
             JRadioButton option = new JRadioButton(value.displayName()
@@ -149,9 +151,32 @@ public final class MainWindow extends JFrame {
             option.setAlignmentX(Component.LEFT_ALIGNMENT);
             option.setSelected(value == difficulty);
             option.addActionListener(e -> difficulty = value);
-            group.add(option);
+            difficultyGroup.add(option);
             card.add(option);
             card.add(Box.createVerticalStrut(8));
+        }
+
+        card.add(Box.createVerticalStrut(10));
+        JLabel categoryTitle = new JLabel("Категория слов");
+        categoryTitle.setFont(Theme.HEADING);
+        categoryTitle.setForeground(Theme.BLUE);
+        categoryTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(categoryTitle);
+        card.add(Box.createVerticalStrut(8));
+
+        ButtonGroup categoryGroup = new ButtonGroup();
+        for (WordCategory value : WordCategory.all()) {
+            JRadioButton option = new JRadioButton(value.displayName()
+                    + " — " + value.words().size() + " слов");
+            option.setFont(Theme.BODY);
+            option.setOpaque(false);
+            option.setForeground(Theme.TEXT);
+            option.setAlignmentX(Component.LEFT_ALIGNMENT);
+            option.setSelected(value == category);
+            option.addActionListener(e -> category = value);
+            categoryGroup.add(option);
+            card.add(option);
+            card.add(Box.createVerticalStrut(6));
         }
 
         card.add(Box.createVerticalStrut(20));
@@ -235,7 +260,7 @@ public final class MainWindow extends JFrame {
 
     private void showGame() {
         cards.show(root, GAME);
-        gamePanel.startRound(difficulty, round, totalScore);
+        gamePanel.startRound(difficulty, category, round, totalScore);
     }
 
     private void showMenu() {
@@ -246,7 +271,7 @@ public final class MainWindow extends JFrame {
     private void roundFinished(GameResult result, boolean timeExpired) {
         totalScore += result.totalScore();
         finishTitle.setText(timeExpired ? "Время вышло" : "Раунд пройден");
-        finishSubtitle.setText("Раунд " + round + ": найдено "
+        finishSubtitle.setText("Раунд " + round + " · " + category.displayName() + ": найдено "
                 + result.foundWords() + " из " + result.totalWords()
                 + " · время " + GameTimer.format(result.elapsedSeconds()));
         finishScore.setText("Очки за раунд: " + result.totalScore());
@@ -257,11 +282,13 @@ public final class MainWindow extends JFrame {
 
     private void showLeaderboard() {
         GameConfig config = difficulty.config();
+        String name = leaderboardName();
         List<GameResult> top = repository.top(
-                config.height(), config.width(), difficulty.displayName(), 5);
+                config.height(), config.width(), name, 5);
 
         StringBuilder text = new StringBuilder();
         text.append("Сложность: ").append(difficulty.displayName())
+                .append(" · ").append(category.displayName())
                 .append(" · сетка ").append(config.height()).append("×").append(config.width())
                 .append("\n\n");
         if (top.isEmpty()) {
@@ -279,5 +306,9 @@ public final class MainWindow extends JFrame {
 
         JOptionPane.showMessageDialog(this, text.toString(), "Рекорды",
                 JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private String leaderboardName() {
+        return difficulty.displayName() + " · " + category.displayName();
     }
 }

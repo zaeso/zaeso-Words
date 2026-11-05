@@ -1,6 +1,7 @@
 package game;
 
 import game.config.Difficulty;
+import game.dictionary.WordCategory;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -141,6 +142,57 @@ class MainTest {
                 size[0] = Main.chooseBoardSize(scanner("\n\n"), Difficulty.HARD.config()));
 
         assertArrayEquals(new int[]{12, 10}, size[0], output);
+    }
+
+    @Test
+    void choosesCategoryByNumber() {
+        WordCategory[] chosen = new WordCategory[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseCategory(scanner("2\n")));
+
+        assertEquals(WordCategory.all().get(1), chosen[0], output);
+    }
+
+    @Test
+    void choosesCategoryByNameInAnyCase() {
+        WordCategory expected = WordCategory.all().get(2);
+        WordCategory[] chosen = new WordCategory[1];
+
+        String output = captureOutput(() ->
+                chosen[0] = Main.chooseCategory(scanner(expected.displayName().toUpperCase() + "\n")));
+
+        assertEquals(expected, chosen[0], output);
+    }
+
+    @Test
+    void choosesDefaultCategoryOnBlankInput() {
+        WordCategory[] chosen = new WordCategory[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseCategory(scanner("\n")));
+
+        assertEquals(WordCategory.defaultCategory(), chosen[0], output);
+    }
+
+    @Test
+    void repeatsCategoryAfterUnknownInput() {
+        WordCategory expected = WordCategory.all().get(1);
+        WordCategory[] chosen = new WordCategory[1];
+
+        String output = captureOutput(() ->
+                chosen[0] = Main.chooseCategory(scanner("unknown\n" + expected.displayName() + "\n")));
+
+        assertEquals(expected, chosen[0], output);
+        assertTrue(output.contains("Неизвестная категория."), output);
+    }
+
+    @Test
+    void stopsCategoryChoiceWhenInputEnds() {
+        WordCategory[] chosen = new WordCategory[1];
+
+        String output = captureOutput(() -> chosen[0] = Main.chooseCategory(scanner("")));
+
+        assertNull(chosen[0], output);
+        assertTrue(output.contains("Ввод завершён."), output);
     }
 
     private static Scanner scanner(String input) {

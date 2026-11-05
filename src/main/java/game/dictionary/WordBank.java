@@ -2,16 +2,9 @@ package game.dictionary;
 
 import java.util.List;
 
-/** Фиксированный словарь игры. */
+/** Словарь категории по умолчанию. */
 public final class WordBank {
-    public static final List<String> WORDS = List.of(
-            "АЛГОРИТМ", "ПРОГРАММА", "КОМПЬЮТЕР", "ИНТЕРНЕТ", "МОНИТОР",
-            "КЛАВИАТУРА", "ПРОЦЕССОР", "ПЕРЕМЕННАЯ", "МАССИВ", "ЦИКЛ",
-            "МЕТОД", "КЛАСС", "ОБЪЕКТ", "СТРОКА", "ФУНКЦИЯ",
-            "ПИТОН", "ДЖАВА", "КОД", "СЕРВЕР", "БРАУЗЕР",
-            "СИСТЕМА", "ДАННЫЕ", "ФАЙЛ", "ПАПКА", "СЕТЬ",
-            "РАЗРАБОТКА", "ПРОЕКТ", "ПАМЯТЬ", "ЛОГИКА", "КОМПИЛЯТОР"
-    );
+    public static final List<String> WORDS = WordCategory.defaultCategory().words();
 
     private WordBank() {
     }

@@ -39,16 +39,26 @@ public class GridGenerator {
     }
 
     public Puzzle generate(int height, int width, List<String> sourceWords, int minWords) {
-        List<String> words = sourceWords.stream()
+        return generateChecked(height, width, sourceWords, minWords).puzzle();
+    }
+
+    public GenerationResult generateChecked(int height, int width,
+                                            List<String> sourceWords, int minWords) {
+        int maxLength = Math.max(height, width);
+        List<String> source = sourceWords == null ? List.of() : sourceWords;
+        List<String> words = source.stream()
                 .filter(Objects::nonNull)
                 .map(s -> s.toUpperCase(Locale.ROOT).replaceAll("[^А-ЯЁ]", ""))
                 .filter(s -> !s.isBlank())
                 .distinct()
-                .filter(s -> s.length() <= Math.max(height, width))
+                .filter(s -> s.length() <= maxLength)
                 .sorted(Comparator.comparingInt(String::length).reversed())
                 .toList();
 
-        if (words.size() < minWords) return null;
+        if (words.size() < minWords) {
+            return GenerationResult.failure(insufficientWordsMessage(
+                    height, width, minWords, words.size(), source.size(), maxLength));
+        }
 
         for (int restart = 0; restart < RESTARTS; restart++) {
             char[][] grid = new char[height][width];
@@ -73,10 +83,41 @@ public class GridGenerator {
 
             if (placed.size() >= minWords) {
                 fillEmptyCells(grid);
-                return new Puzzle(grid, placed);
+                return GenerationResult.success(new Puzzle(grid, placed));
             }
         }
-        return null;
+
+        return GenerationResult.failure(
+                "Не удалось разместить минимум " + minWords + " слов на сетке "
+                        + height + "×" + width + ". Попробуйте другой размер или словарь.");
+    }
+
+    private static String insufficientWordsMessage(int height, int width, int minWords,
+                                                   int suitable, int total, int maxLength) {
+        if (total == 0) {
+            return "Выбранный словарь пуст.";
+        }
+        if (suitable == 0) {
+            return "В словаре нет слов длиной до " + maxLength + " букв для сетки "
+                    + height + "×" + width + ".";
+        }
+        return "Недостаточно слов для сетки " + height + "×" + width
+                + ": нужно " + minWords + ", подходит " + suitable
+                + " из " + total + " (максимальная длина слова — " + maxLength + ").";
+    }
+
+    public record GenerationResult(Puzzle puzzle, String error) {
+        public static GenerationResult success(Puzzle puzzle) {
+            return new GenerationResult(Objects.requireNonNull(puzzle), null);
+        }
+
+        public static GenerationResult failure(String error) {
+            return new GenerationResult(null, Objects.requireNonNull(error));
+        }
+
+        public boolean ok() {
+            return puzzle != null;
+        }
     }
 
     /**

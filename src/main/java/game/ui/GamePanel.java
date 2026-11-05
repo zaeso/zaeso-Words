@@ -2,8 +2,9 @@ package game.ui;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
-import game.dictionary.WordBank;
+import game.dictionary.WordCategory;
 import game.generator.GridGenerator;
+import game.generator.GridGenerator.GenerationResult;
 import game.model.Placement;
 import game.model.Puzzle;
 import game.play.GameTimer;
@@ -82,20 +83,26 @@ public final class GamePanel extends JPanel {
         input.addActionListener(e -> submitTyped());
     }
 
-    public void startRound(Difficulty difficulty, int round, int carriedScore) {
+    public void startRound(Difficulty difficulty, WordCategory category,
+                           int round, int carriedScore) {
         this.round = round;
         this.carriedScore = carriedScore;
         GameConfig config = difficulty.config();
-        Puzzle puzzle = generate(config);
-        if (puzzle == null) {
-            statusLabel.setText("Не удалось собрать сетку. Нажмите «В меню» и попробуйте снова.");
+        GenerationResult generation = generate(config, category);
+        if (!generation.ok()) {
+            session = null;
+            ticker.stop();
+            setControlsEnabled(false);
+            statusLabel.setForeground(Theme.RED);
+            statusLabel.setText(generation.error());
             return;
         }
 
-        session = new GameSession(puzzle, config, difficulty.displayName());
+        session = new GameSession(generation.puzzle(), config, leaderboardName(difficulty, category));
         session.start();
 
-        roundLabel.setText("Раунд " + round + " · " + difficulty.displayName());
+        roundLabel.setText("Раунд " + round + " · " + difficulty.displayName()
+                + " · " + category.displayName());
         totalLabel.setText("Всего очков: " + carriedScore);
         gridPanel.setGrid(session.grid());
         gridPanel.setFoundCells(Set.of());
@@ -185,13 +192,13 @@ public final class GamePanel extends JPanel {
         return footer;
     }
 
-    private Puzzle generate(GameConfig config) {
-        for (int attempt = 0; attempt < 8; attempt++) {
-            Puzzle puzzle = new GridGenerator().generate(
-                    config.height(), config.width(), WordBank.WORDS, config.minWords());
-            if (puzzle != null) return puzzle;
-        }
-        return null;
+    private GenerationResult generate(GameConfig config, WordCategory category) {
+        return new GridGenerator().generateChecked(
+                config.height(), config.width(), category.words(), config.minWords());
+    }
+
+    private static String leaderboardName(Difficulty difficulty, WordCategory category) {
+        return difficulty.displayName() + " · " + category.displayName();
     }
 
     private void submitTyped() {

@@ -1,0 +1,5 @@
+Технологии|technology.txt
+Животные|animals.txt
+Космос|space.txt
+Природа|nature.txt
+Еда|food.txt
