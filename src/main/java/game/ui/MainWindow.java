@@ -6,6 +6,8 @@ import game.config.GameSettings;
 import game.config.SettingsStore;
 import game.config.ThemeChoice;
 import game.config.UiSettings;
+import game.daily.DailyPuzzle;
+import game.daily.DailyStatistics;
 import game.dictionary.WordCategory;
 import game.play.GameTimer;
 import game.result.GameResult;
@@ -34,6 +36,7 @@ import java.awt.GridBagLayout;
 import java.awt.Toolkit;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 
 public final class MainWindow extends JFrame {
@@ -53,9 +56,13 @@ public final class MainWindow extends JFrame {
     private JLabel finishBreakdown;
     private JLabel finishTotal;
     private JLabel settingsStatus;
+    private JButton nextRoundButton;
 
     private GameSettings settings;
+    private GameSettings activeSettings;
     private UiSettings uiSettings;
+    private boolean dailyMode;
+    private LocalDate dailyDate;
     private JComboBox<String> difficultyBox;
     private JComboBox<String> categoryBox;
     private JComboBox<GameSettings.BoardSize> sizeBox;
@@ -78,6 +85,7 @@ public final class MainWindow extends JFrame {
         setLocationRelativeTo(null);
 
         settings = settingsStore.load();
+        activeSettings = settings;
         uiSettings = settingsStore.loadUi();
         Theme.apply(uiSettings.theme());
 
@@ -100,22 +108,28 @@ public final class MainWindow extends JFrame {
         title.setForeground(Color.WHITE);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Бесконечный поиск слов · свои сетка, время и словарь");
+        JLabel subtitle = new JLabel("Бесконечный поиск слов · сетка дня и личная статистика");
         subtitle.setFont(Theme.BODY);
         subtitle.setForeground(Theme.SUBTITLE);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JButton play = Theme.button("Играть", Theme.GREEN);
+        JButton daily = Theme.button("Сетка дня", Theme.GREEN);
+        JButton statistics = Theme.button("Статистика", Theme.BLUE);
         JButton settings = Theme.button("Настройки", Theme.BLUE);
         JButton records = Theme.button("Рекорды", Theme.BLUE);
         JButton exit = Theme.button("Выход", Theme.RED_DARK);
 
         play.setAlignmentX(Component.CENTER_ALIGNMENT);
+        daily.setAlignmentX(Component.CENTER_ALIGNMENT);
+        statistics.setAlignmentX(Component.CENTER_ALIGNMENT);
         settings.setAlignmentX(Component.CENTER_ALIGNMENT);
         records.setAlignmentX(Component.CENTER_ALIGNMENT);
         exit.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         play.addActionListener(e -> startNewGame());
+        daily.addActionListener(e -> startDailyGame());
+        statistics.addActionListener(e -> showStatistics());
         settings.addActionListener(e -> cards.show(root, SETTINGS));
         records.addActionListener(e -> showLeaderboard());
         exit.addActionListener(e -> dispose());
@@ -123,13 +137,17 @@ public final class MainWindow extends JFrame {
         content.add(title);
         content.add(Box.createVerticalStrut(8));
         content.add(subtitle);
-        content.add(Box.createVerticalStrut(38));
+        content.add(Box.createVerticalStrut(30));
         content.add(play);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(10));
+        content.add(daily);
+        content.add(Box.createVerticalStrut(10));
+        content.add(statistics);
+        content.add(Box.createVerticalStrut(10));
         content.add(settings);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(10));
         content.add(records);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(10));
         content.add(exit);
 
         panel.add(content);
@@ -432,11 +450,11 @@ public final class MainWindow extends JFrame {
         finishTotal.setForeground(Theme.GREEN);
         finishTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton next = Theme.button("Следующий раунд", Theme.GREEN);
+        nextRoundButton = Theme.button("Следующий раунд", Theme.GREEN);
         JButton menu = Theme.button("В меню", Theme.BLUE);
-        next.setAlignmentX(Component.CENTER_ALIGNMENT);
+        nextRoundButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         menu.setAlignmentX(Component.CENTER_ALIGNMENT);
-        next.addActionListener(e -> {
+        nextRoundButton.addActionListener(e -> {
             round++;
             showGame();
         });
@@ -452,7 +470,7 @@ public final class MainWindow extends JFrame {
         card.add(Box.createVerticalStrut(10));
         card.add(finishTotal);
         card.add(Box.createVerticalStrut(26));
-        card.add(next);
+        card.add(nextRoundButton);
         card.add(Box.createVerticalStrut(10));
         card.add(menu);
 
@@ -461,6 +479,18 @@ public final class MainWindow extends JFrame {
     }
 
     private void startNewGame() {
+        dailyMode = false;
+        dailyDate = null;
+        activeSettings = settings;
+        round = 1;
+        totalScore = 0;
+        showGame();
+    }
+
+    private void startDailyGame() {
+        dailyMode = true;
+        dailyDate = DailyPuzzle.today();
+        activeSettings = DailyPuzzle.settings();
         round = 1;
         totalScore = 0;
         showGame();
@@ -468,7 +498,15 @@ public final class MainWindow extends JFrame {
 
     private void showGame() {
         cards.show(root, GAME);
-        gamePanel.startRound(settings, round, totalScore);
+        if (dailyMode) {
+            gamePanel.startRound(activeSettings, round, totalScore,
+                    DailyPuzzle.RESULT_LABEL,
+                    "Сетка дня · " + DailyPuzzle.formatDate(dailyDate)
+                            + " · " + activeSettings.height() + "×" + activeSettings.width(),
+                    DailyPuzzle.seed(dailyDate));
+        } else {
+            gamePanel.startRound(activeSettings, round, totalScore);
+        }
     }
 
     private void showMenu() {
@@ -478,16 +516,39 @@ public final class MainWindow extends JFrame {
 
     private void roundFinished(GameResult result, boolean timeExpired) {
         totalScore += result.totalScore();
-        finishTitle.setText(timeExpired ? "Время вышло" : "Раунд пройден");
-        finishSubtitle.setText("Раунд " + round + " · " + settings.difficulty().displayName()
-                + " · " + settings.category().displayName()
-                + " · сетка " + settings.height() + "×" + settings.width()
+        finishTitle.setText(timeExpired
+                ? "Время вышло"
+                : (dailyMode ? "Сетка дня пройдена" : "Раунд пройден"));
+
+        String mode = dailyMode
+                ? "Сетка дня · " + DailyPuzzle.formatDate(dailyDate)
+                : "Раунд " + round;
+        String difficultyName = dailyMode
+                ? DailyPuzzle.RESULT_LABEL
+                : activeSettings.difficulty().displayName();
+        finishSubtitle.setText(mode + " · " + difficultyName
+                + " · " + activeSettings.category().displayName()
+                + " · сетка " + activeSettings.height() + "×" + activeSettings.width()
                 + ": найдено " + result.foundWords() + " из " + result.totalWords()
                 + " · время " + GameTimer.format(result.elapsedSeconds()));
         finishScore.setText("Очки за раунд: " + result.totalScore());
         finishBreakdown.setText(GamePanel.breakdown(result.score()));
         finishTotal.setText("Всего очков: " + totalScore);
+        nextRoundButton.setVisible(!dailyMode);
         cards.show(root, FINISH);
+    }
+
+    private void showStatistics() {
+        DailyStatistics statistics = DailyStatistics.from(repository.load());
+
+        StringBuilder text = new StringBuilder();
+        text.append("Лучший счёт: ").append(statistics.bestScore()).append('\n')
+                .append("Серия дней: ").append(statistics.currentStreak()).append('\n')
+                .append("Дней со статистикой: ").append(statistics.daysPlayed()).append('\n')
+                .append("Найдено слов: ").append(statistics.wordsFound());
+
+        JOptionPane.showMessageDialog(this, text.toString(),
+                "Личная статистика", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showLeaderboard() {

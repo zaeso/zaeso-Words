@@ -5,8 +5,8 @@ import game.config.GameConfig;
 import game.config.GameSettings;
 import game.config.UiSettings;
 import game.dictionary.WordCategory;
-import game.generator.GridGenerator;
 import game.generator.GridGenerator.GenerationResult;
+import game.generator.RoundGenerator;
 import game.model.Placement;
 import game.play.GameTimer;
 import game.result.GameResult;
@@ -35,7 +35,6 @@ import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -100,11 +99,21 @@ public final class GamePanel extends JPanel {
     }
 
     public void startRound(GameSettings settings, int round, int carriedScore) {
+        startRound(settings, round, carriedScore, null, null, new Random().nextLong());
+    }
+
+    /**
+     * Запускает раунд с воспроизводимым seed. {@code resultLabel} заменяет
+     * название сложности в сохранённом результате (например, «Ежедневная»),
+     * а {@code title} — заголовок в шапке игры.
+     */
+    public void startRound(GameSettings settings, int round, int carriedScore,
+                           String resultLabel, String title, long seed) {
         this.round = round;
         this.carriedScore = carriedScore;
         GameConfig config = settings.toConfig();
         WordCategory category = settings.category();
-        GenerationResult generation = generate(config, category);
+        GenerationResult generation = RoundGenerator.generate(config, category, seed);
         if (!generation.ok()) {
             session = null;
             ticker.stop();
@@ -114,14 +123,18 @@ public final class GamePanel extends JPanel {
             return;
         }
 
-        session = new GameSession(generation.puzzle(), config,
-                leaderboardName(settings.difficulty(), category));
+        String label = resultLabel != null
+                ? resultLabel
+                : leaderboardName(settings.difficulty(), category);
+        session = new GameSession(generation.puzzle(), config, label);
         session.start();
         wordColors.clear();
 
-        roundLabel.setText("Раунд " + round + " · " + settings.difficulty().displayName()
-                + " · " + category.displayName()
-                + " · " + config.height() + "×" + config.width());
+        roundLabel.setText(title != null
+                ? title
+                : "Раунд " + round + " · " + settings.difficulty().displayName()
+                        + " · " + category.displayName()
+                        + " · " + config.height() + "×" + config.width());
         totalLabel.setText("Всего очков: " + carriedScore);
         gridPanel.setGrid(session.grid());
         gridPanel.setFoundCells(Map.of());
@@ -200,14 +213,6 @@ public final class GamePanel extends JPanel {
         footer.add(actions, BorderLayout.NORTH);
         footer.add(statusLabel, BorderLayout.SOUTH);
         return footer;
-    }
-
-    private GenerationResult generate(GameConfig config, WordCategory category) {
-        int maxLength = Math.max(config.height(), config.width());
-        int sampleSize = Math.max(config.minWords() * 4, 30);
-        List<String> pool = category.sampleWords(maxLength, sampleSize, new Random());
-        return new GridGenerator().generateChecked(
-                config.height(), config.width(), pool, config.minWords());
     }
 
     private static String leaderboardName(Difficulty difficulty, WordCategory category) {
