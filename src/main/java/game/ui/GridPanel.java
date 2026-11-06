@@ -14,8 +14,10 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -23,12 +25,15 @@ public final class GridPanel extends JPanel {
     private static final int GAP = 4;
     private static final int MARGIN = 14;
     private static final int HIGHLIGHT_MILLIS = 700;
+    private static final Color HINT_GREEN = new Color(0x81C784);
+    private static final Color HINT_GREEN_BORDER = new Color(0x1B5E20);
 
     private final Consumer<String> onWordSelected;
     private final Timer animationTimer;
     private char[][] grid = new char[0][0];
-    private final Set<Cell> foundCells = new HashSet<>();
+    private final Map<Cell, Color> foundCells = new HashMap<>();
     private final Set<Cell> animatedCells = new HashSet<>();
+    private final Set<Cell> hintCells = new HashSet<>();
     private final List<Cell> selection = new ArrayList<>();
     private boolean animationsEnabled = true;
     private long animationStart;
@@ -91,18 +96,23 @@ public final class GridPanel extends JPanel {
         this.grid = grid;
         this.foundCells.clear();
         this.animatedCells.clear();
+        this.hintCells.clear();
         this.selection.clear();
         this.animationTimer.stop();
         setBackground(Theme.BLUE_DARK);
         repaint();
     }
 
-    public void setFoundCells(Set<Cell> cells) {
-        Set<Cell> added = new HashSet<>(cells);
-        added.removeAll(foundCells);
+    /**
+     * Подсвечивает найденные слова. Каждая клетка получает цвет своего слова,
+     * поэтому соседние найденные слова визуально различаются.
+     */
+    public void setFoundCells(Map<Cell, Color> cells) {
+        Set<Cell> added = new HashSet<>(cells.keySet());
+        added.removeAll(foundCells.keySet());
 
         foundCells.clear();
-        foundCells.addAll(cells);
+        foundCells.putAll(cells);
 
         if (animationsEnabled && !added.isEmpty() && !animationTimer.isRunning()) {
             animatedCells.clear();
@@ -114,6 +124,30 @@ public final class GridPanel extends JPanel {
             animationTimer.stop();
         }
         repaint();
+    }
+
+    /** Добавляет клетку подсказки: одна буква слова подсвечивается зелёным. */
+    public void addHintCell(Cell cell) {
+        if (cell != null) {
+            hintCells.add(cell);
+            repaint();
+        }
+    }
+
+    /** Снимает подсветку подсказок, например при начале нового раунда. */
+    public void clearHintCells() {
+        if (!hintCells.isEmpty()) {
+            hintCells.clear();
+            repaint();
+        }
+    }
+
+    boolean hasHintCell(Cell cell) {
+        return hintCells.contains(cell);
+    }
+
+    Color foundColorOf(Cell cell) {
+        return foundCells.get(cell);
     }
 
     /** Включает или выключает плавную подсветку найденных букв. */
@@ -185,14 +219,23 @@ public final class GridPanel extends JPanel {
                     int x = metrics.originX + col * (metrics.cell + GAP);
                     int y = metrics.originY + row * (metrics.cell + GAP);
 
-                    if (foundCells.contains(cell)) {
-                        g.setColor(foundColor(cell));
+                    Color foundColor = foundCells.get(cell);
+                    if (foundColor != null) {
+                        g.setColor(foundColor(cell, foundColor));
+                    } else if (hintCells.contains(cell)) {
+                        g.setColor(HINT_GREEN);
                     } else if (selection.contains(cell)) {
                         g.setColor(Theme.BLUE);
                     } else {
                         g.setColor(Theme.CELL);
                     }
                     g.fillRoundRect(x, y, metrics.cell, metrics.cell, 10, 10);
+
+                    if (hintCells.contains(cell) && !foundCells.containsKey(cell)) {
+                        g.setColor(HINT_GREEN_BORDER);
+                        g.setStroke(new BasicStroke(2f));
+                        g.drawRoundRect(x + 1, y + 1, metrics.cell - 2, metrics.cell - 2, 10, 10);
+                    }
 
                     if (selection.contains(cell)) {
                         g.setColor(Theme.GREEN_LIGHT);
@@ -205,8 +248,11 @@ public final class GridPanel extends JPanel {
                     int textX = x + (metrics.cell - fontMetrics.stringWidth(text)) / 2;
                     int textY = y + (metrics.cell - fontMetrics.getHeight()) / 2
                             + fontMetrics.getAscent();
-                    g.setColor(foundCells.contains(cell) || selection.contains(cell)
+                    g.setColor(foundCells.containsKey(cell) || selection.contains(cell)
                             ? Color.WHITE : Theme.CELL_TEXT);
+                    if (hintCells.contains(cell) && !foundCells.containsKey(cell)) {
+                        g.setColor(HINT_GREEN_BORDER);
+                    }
                     g.drawString(text, textX, textY);
                 }
             }
@@ -215,12 +261,12 @@ public final class GridPanel extends JPanel {
         }
     }
 
-    private Color foundColor(Cell cell) {
-        if (!animatedCells.contains(cell)) return Theme.GREEN;
+    private Color foundColor(Cell cell, Color base) {
+        if (!animatedCells.contains(cell)) return base;
 
         long elapsed = System.currentTimeMillis() - animationStart;
         float progress = Math.min(1f, elapsed / (float) HIGHLIGHT_MILLIS);
-        return blend(Theme.GREEN, Theme.GREEN_LIGHT, 1f - progress);
+        return blend(base, Theme.GREEN_LIGHT, 1f - progress);
     }
 
     private static Color blend(Color from, Color to, float ratio) {

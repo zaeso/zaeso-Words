@@ -34,12 +34,22 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 public final class GamePanel extends JPanel {
+    private static final Color[] WORD_COLORS = {
+            new Color(0x2E7D32),
+            new Color(0x1565C0),
+            new Color(0xC62828),
+            new Color(0x6A1B9A),
+            new Color(0xE65100),
+            new Color(0x00695C),
+            new Color(0xAD1457),
+            new Color(0x4527A0)
+    };
     public interface Listener {
         void roundFinished(GameResult result, boolean timeExpired);
     }
@@ -60,6 +70,7 @@ public final class GamePanel extends JPanel {
 
     private GameSession session;
     private UiSettings uiSettings = UiSettings.defaults();
+    private final Map<String, Color> wordColors = new HashMap<>();
     private int round;
     private int carriedScore;
 
@@ -106,13 +117,14 @@ public final class GamePanel extends JPanel {
         session = new GameSession(generation.puzzle(), config,
                 leaderboardName(settings.difficulty(), category));
         session.start();
+        wordColors.clear();
 
         roundLabel.setText("Раунд " + round + " · " + settings.difficulty().displayName()
                 + " · " + category.displayName()
                 + " · " + config.height() + "×" + config.width());
         totalLabel.setText("Всего очков: " + carriedScore);
         gridPanel.setGrid(session.grid());
-        gridPanel.setFoundCells(Set.of());
+        gridPanel.setFoundCells(Map.of());
         rebuildWordList();
         setControlsEnabled(true);
         statusLabel.setForeground(Theme.MUTED);
@@ -230,11 +242,14 @@ public final class GamePanel extends JPanel {
         switch (hint.status()) {
             case GIVEN -> {
                 Placement placement = hint.placement();
+                gridPanel.addHintCell(new GridPanel.Cell(
+                        placement.startRow(), placement.startCol()));
                 statusLabel.setForeground(Theme.GREEN);
                 statusLabel.setText("Подсказка " + hint.used() + " из " + hint.limit()
                         + ": слово из " + placement.word().length()
                         + " букв, первая «" + placement.word().charAt(0)
-                        + "», направление — " + placement.direction().description()
+                        + "» подсвечена зелёным, направление — "
+                        + placement.direction().description()
                         + ". Минус 30 секунд.");
                 playSound(SoundPlayer::hint);
             }
@@ -258,16 +273,19 @@ public final class GamePanel extends JPanel {
     }
 
     private void refreshFound() {
-        Set<GridPanel.Cell> cells = new HashSet<>();
-        for (Placement placement : session.placements()) {
-            if (!session.isFound(placement.word())) continue;
-            int rowStep = placement.direction().rowStep();
-            int colStep = placement.direction().colStep();
-            for (int i = 0; i < placement.word().length(); i++) {
-                cells.add(new GridPanel.Cell(
-                        placement.startRow() + rowStep * i,
-                        placement.startCol() + colStep * i));
-            }
+        Map<GridPanel.Cell, Color> cells = new HashMap<>();
+        for (String word : session.foundWords()) {
+            Color color = wordColors.computeIfAbsent(word,
+                    value -> WORD_COLORS[wordColors.size() % WORD_COLORS.length]);
+            session.placementFor(word).ifPresent(placement -> {
+                int rowStep = placement.direction().rowStep();
+                int colStep = placement.direction().colStep();
+                for (int i = 0; i < placement.word().length(); i++) {
+                    cells.putIfAbsent(new GridPanel.Cell(
+                            placement.startRow() + rowStep * i,
+                            placement.startCol() + colStep * i), color);
+                }
+            });
         }
         gridPanel.setFoundCells(cells);
         rebuildWordList();
@@ -279,7 +297,9 @@ public final class GamePanel extends JPanel {
             boolean found = session.isFound(word);
             JLabel label = new JLabel((found ? "✓ " : "• ") + word);
             label.setFont(Theme.BODY);
-            label.setForeground(found ? Theme.GREEN : Theme.TEXT);
+            label.setForeground(found
+                    ? wordColors.getOrDefault(word, Theme.GREEN)
+                    : Theme.TEXT);
             wordsPanel.add(label);
         }
         wordsPanel.revalidate();
