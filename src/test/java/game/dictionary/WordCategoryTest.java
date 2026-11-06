@@ -51,6 +51,9 @@ class WordCategoryTest {
         assertEquals(30, first.size());
         assertTrue(first.stream().allMatch(word -> word.length() <= 12));
         assertTrue(first.stream().allMatch(word -> word.matches("[А-ЯЁ]+")));
+        long shortWords = first.stream().filter(word -> word.length() <= 5).count();
+        assertTrue(shortWords >= 8,
+                () -> "в выборке должно быть много коротких слов, а их " + shortWords);
         assertNotEquals(first, second);
     }
 

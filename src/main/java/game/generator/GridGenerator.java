@@ -69,8 +69,11 @@ public class GridGenerator {
             shuffled.sort(Comparator.comparingInt(String::length).reversed());
 
             for (String word : shuffled) {
+                boolean preferDiagonal = random.nextBoolean();
                 for (int attempt = 0; attempt < ATTEMPTS_PER_WORD; attempt++) {
-                    Direction direction = Direction.ALL[random.nextInt(Direction.ALL.length)];
+                    Direction direction = preferDiagonal && attempt < ATTEMPTS_PER_WORD / 2
+                            ? Direction.ALL[4 + random.nextInt(4)]
+                            : randomDirection();
                     int row = random.nextInt(height);
                     int col = random.nextInt(width);
 
@@ -90,6 +93,18 @@ public class GridGenerator {
         return GenerationResult.failure(
                 "Не удалось разместить минимум " + minWords + " слов на сетке "
                         + height + "×" + width + ". Попробуйте другой размер или словарь.");
+    }
+
+    /**
+     * Диагонали выбираются чаще прямых направлений: из-за границ сетки
+     * диагональное размещение удаётся реже, поэтому при равном выборе
+     * диагональных слов в готовой сетке почти не остаётся.
+     */
+    Direction randomDirection() {
+        if (random.nextInt(10) < 6) {
+            return Direction.ALL[4 + random.nextInt(4)];
+        }
+        return Direction.ALL[random.nextInt(4)];
     }
 
     private static String insufficientWordsMessage(int height, int width, int minWords,

@@ -206,6 +206,21 @@ class GridGeneratorTest {
         }
     }
 
+    @Test
+    void prefersDiagonalDirections() {
+        GridGenerator generator = new GridGenerator(11L);
+        int diagonals = 0;
+
+        for (int i = 0; i < 1000; i++) {
+            Direction direction = generator.randomDirection();
+            if (direction.rowStep() != 0 && direction.colStep() != 0) {
+                diagonals++;
+            }
+        }
+
+        assertTrue(diagonals > 500, "диагональных направлений: " + diagonals);
+    }
+
     private static char[][] emptyGrid(int height, int width) {
         char[][] grid = new char[height][width];
         for (char[] row : grid) {
