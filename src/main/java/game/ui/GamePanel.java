@@ -3,11 +3,11 @@ package game.ui;
 import game.config.Difficulty;
 import game.config.GameConfig;
 import game.config.GameSettings;
+import game.config.UiSettings;
 import game.dictionary.WordCategory;
 import game.generator.GridGenerator;
 import game.generator.GridGenerator.GenerationResult;
 import game.model.Placement;
-import game.model.Puzzle;
 import game.play.GameTimer;
 import game.result.GameResult;
 import game.result.ResultRepository;
@@ -24,7 +24,6 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
 import java.awt.BorderLayout;
@@ -53,13 +52,12 @@ public final class GamePanel extends JPanel {
     private final JLabel timeLabel = new JLabel();
     private final JLabel hintsLabel = new JLabel();
     private final JLabel statusLabel = new JLabel(" ");
-    private final JTextField input = new JTextField();
     private final JButton hintButton = Theme.button("Подсказка", Theme.GREEN);
-    private final JButton findButton = Theme.button("Найти", Theme.BLUE);
     private final JButton menuButton = Theme.button("В меню", Theme.RED_DARK);
     private final Timer ticker;
 
     private GameSession session;
+    private UiSettings uiSettings = UiSettings.defaults();
     private int round;
     private int carriedScore;
 
@@ -79,9 +77,13 @@ public final class GamePanel extends JPanel {
         add(buildFooter(), BorderLayout.SOUTH);
 
         hintButton.addActionListener(e -> useHint());
-        findButton.addActionListener(e -> submitTyped());
         menuButton.addActionListener(e -> menuAction.run());
-        input.addActionListener(e -> submitTyped());
+    }
+
+    /** Применяет звук и анимации, не затрагивая текущую игровую сессию. */
+    public void applyUiSettings(UiSettings settings) {
+        this.uiSettings = settings;
+        gridPanel.setAnimationsEnabled(settings.animationsEnabled());
     }
 
     public void startRound(GameSettings settings, int round, int carriedScore) {
@@ -112,8 +114,7 @@ public final class GamePanel extends JPanel {
         rebuildWordList();
         setControlsEnabled(true);
         statusLabel.setForeground(Theme.MUTED);
-        statusLabel.setText("Выделите слово мышью или введите его");
-        input.setText("");
+        statusLabel.setText("Выделите слово мышью");
         updateIndicators();
         ticker.restart();
     }
@@ -173,24 +174,16 @@ public final class GamePanel extends JPanel {
         JPanel footer = new JPanel(new BorderLayout(10, 8));
         footer.setOpaque(false);
 
-        JPanel inputRow = new JPanel(new BorderLayout(8, 0));
-        inputRow.setOpaque(false);
-        input.setFont(Theme.BODY);
-        input.setPreferredSize(new Dimension(0, 38));
-        inputRow.add(input, BorderLayout.CENTER);
-
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actions.setOpaque(false);
-        actions.add(findButton);
         actions.add(hintButton);
         actions.add(menuButton);
-        inputRow.add(actions, BorderLayout.EAST);
 
         statusLabel.setFont(Theme.BODY);
         statusLabel.setForeground(Theme.MUTED);
         statusLabel.setHorizontalAlignment(SwingConstants.LEFT);
 
-        footer.add(inputRow, BorderLayout.NORTH);
+        footer.add(actions, BorderLayout.NORTH);
         footer.add(statusLabel, BorderLayout.SOUTH);
         return footer;
     }
@@ -204,19 +197,6 @@ public final class GamePanel extends JPanel {
         return difficulty.displayName() + " · " + category.displayName();
     }
 
-    private void submitTyped() {
-        if (session == null || session.isFinished()) return;
-        String value = input.getText();
-        if (session.isHintCommand(value)) {
-            input.setText("");
-            useHint();
-            return;
-        }
-        submitWord(value);
-        input.setText("");
-        input.requestFocusInWindow();
-    }
-
     private void submitWord(String word) {
         if (session == null || session.isFinished()) return;
 
@@ -226,6 +206,7 @@ public final class GamePanel extends JPanel {
                 statusLabel.setForeground(Theme.GREEN);
                 statusLabel.setText("Найдено: " + word.trim().toUpperCase());
                 refreshFound();
+                playSound(SoundPlayer::found);
             }
             case EMPTY -> showError("Введите слово");
             case NON_CYRILLIC -> showError("Только русские буквы");
@@ -250,6 +231,7 @@ public final class GamePanel extends JPanel {
                         + " букв, первая «" + placement.word().charAt(0)
                         + "», направление — " + placement.direction().description()
                         + ". Минус 30 секунд.");
+                playSound(SoundPlayer::hint);
             }
             case DISABLED -> showError("В этом режиме подсказки отключены");
             case LIMIT_REACHED -> showError("Подсказки закончились");
@@ -261,6 +243,13 @@ public final class GamePanel extends JPanel {
     private void showError(String message) {
         statusLabel.setForeground(Theme.RED);
         statusLabel.setText(message);
+        playSound(SoundPlayer::error);
+    }
+
+    private void playSound(Runnable sound) {
+        if (uiSettings.soundEnabled()) {
+            sound.run();
+        }
     }
 
     private void refreshFound() {
@@ -313,6 +302,7 @@ public final class GamePanel extends JPanel {
         ticker.stop();
         setControlsEnabled(false);
         GameResult result = session.finish(reason);
+        playSound(SoundPlayer::finish);
         try {
             repository.save(result);
         } catch (IOException e) {
@@ -324,8 +314,6 @@ public final class GamePanel extends JPanel {
 
     private void setControlsEnabled(boolean enabled) {
         hintButton.setEnabled(enabled);
-        findButton.setEnabled(enabled);
-        input.setEnabled(enabled);
         gridPanel.setEnabled(enabled);
     }
 

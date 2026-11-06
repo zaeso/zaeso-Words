@@ -18,9 +18,15 @@ import java.util.Properties;
  * Локальное хранилище выбранных настроек в properties-файле. Значения по
  * умолчанию переживают перезапуск игры, а повреждённый или устаревший файл
  * не мешает запуску: для некорректных полей берутся значения профиля.
+ *
+ * <p>Параметры игры и оформления лежат в одном файле, но сохраняются
+ * независимо: запись одной группы не стирает ключи другой.</p>
  */
 public final class SettingsStore {
     private static final String FILE_NAME = "settings.properties";
+    private static final String THEME = "theme";
+    private static final String SOUND = "sound";
+    private static final String ANIMATIONS = "animations";
 
     private final Path file;
 
@@ -38,16 +44,7 @@ public final class SettingsStore {
     }
 
     public GameSettings load() {
-        if (!Files.isRegularFile(file)) {
-            return GameSettings.defaults();
-        }
-
-        Properties properties = new Properties();
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            properties.load(reader);
-        } catch (IOException | RuntimeException e) {
-            return GameSettings.defaults();
-        }
+        Properties properties = readProperties();
 
         Difficulty difficulty = Difficulty.fromInput(properties.getProperty("difficulty"));
         if (difficulty == null) {
@@ -77,17 +74,54 @@ public final class SettingsStore {
                 Duration.ofMinutes(minutes));
     }
 
+    public UiSettings loadUi() {
+        Properties properties = readProperties();
+        ThemeChoice theme = ThemeChoice.fromInput(properties.getProperty(THEME));
+        if (theme == null) {
+            theme = ThemeChoice.CLASSIC;
+        }
+        boolean sound = booleanProperty(properties, SOUND, true);
+        boolean animations = booleanProperty(properties, ANIMATIONS, true);
+        return new UiSettings(theme, sound, animations);
+    }
+
     public void save(GameSettings settings) throws IOException {
         Objects.requireNonNull(settings, "settings");
 
-        Properties properties = new Properties();
+        Properties properties = readProperties();
         properties.setProperty("difficulty", settings.difficulty().name());
         properties.setProperty("category", settings.category().fileName());
         properties.setProperty("height", String.valueOf(settings.height()));
         properties.setProperty("width", String.valueOf(settings.width()));
         properties.setProperty("minutes",
                 String.valueOf(settings.timeLimit().toMinutes()));
+        write(properties);
+    }
 
+    public void saveUi(UiSettings settings) throws IOException {
+        Objects.requireNonNull(settings, "settings");
+
+        Properties properties = readProperties();
+        properties.setProperty(THEME, settings.theme().name());
+        properties.setProperty(SOUND, String.valueOf(settings.soundEnabled()));
+        properties.setProperty(ANIMATIONS, String.valueOf(settings.animationsEnabled()));
+        write(properties);
+    }
+
+    private Properties readProperties() {
+        Properties properties = new Properties();
+        if (!Files.isRegularFile(file)) {
+            return properties;
+        }
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            properties.load(reader);
+        } catch (IOException | RuntimeException e) {
+            properties.clear();
+        }
+        return properties;
+    }
+
+    private void write(Properties properties) throws IOException {
         Path parent = file.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
@@ -117,5 +151,14 @@ public final class SettingsStore {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    private static boolean booleanProperty(Properties properties, String key, boolean fallback) {
+        String value = properties.getProperty(key);
+        if (value == null) return fallback;
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.equals("true")) return true;
+        if (normalized.equals("false")) return false;
+        return fallback;
     }
 }

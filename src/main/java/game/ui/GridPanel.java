@@ -1,6 +1,7 @@
 package game.ui;
 
 import javax.swing.JPanel;
+import javax.swing.Timer;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -21,15 +22,21 @@ import java.util.function.Consumer;
 public final class GridPanel extends JPanel {
     private static final int GAP = 4;
     private static final int MARGIN = 14;
+    private static final int HIGHLIGHT_MILLIS = 700;
 
     private final Consumer<String> onWordSelected;
+    private final Timer animationTimer;
     private char[][] grid = new char[0][0];
     private final Set<Cell> foundCells = new HashSet<>();
+    private final Set<Cell> animatedCells = new HashSet<>();
     private final List<Cell> selection = new ArrayList<>();
+    private boolean animationsEnabled = true;
+    private long animationStart;
     private Cell anchor;
 
     public GridPanel(Consumer<String> onWordSelected) {
         this.onWordSelected = onWordSelected;
+        this.animationTimer = new Timer(40, e -> animateHighlight());
         setOpaque(true);
         setBackground(Theme.BLUE_DARK);
         setPreferredSize(new Dimension(520, 460));
@@ -83,13 +90,47 @@ public final class GridPanel extends JPanel {
     public void setGrid(char[][] grid) {
         this.grid = grid;
         this.foundCells.clear();
+        this.animatedCells.clear();
         this.selection.clear();
+        this.animationTimer.stop();
+        setBackground(Theme.BLUE_DARK);
         repaint();
     }
 
     public void setFoundCells(Set<Cell> cells) {
+        Set<Cell> added = new HashSet<>(cells);
+        added.removeAll(foundCells);
+
         foundCells.clear();
         foundCells.addAll(cells);
+
+        if (animationsEnabled && !added.isEmpty() && !animationTimer.isRunning()) {
+            animatedCells.clear();
+            animatedCells.addAll(added);
+            animationStart = System.currentTimeMillis();
+            animationTimer.restart();
+        } else if (!animationsEnabled) {
+            animatedCells.clear();
+            animationTimer.stop();
+        }
+        repaint();
+    }
+
+    /** Включает или выключает плавную подсветку найденных букв. */
+    public void setAnimationsEnabled(boolean enabled) {
+        this.animationsEnabled = enabled;
+        if (!enabled) {
+            animatedCells.clear();
+            animationTimer.stop();
+            repaint();
+        }
+    }
+
+    private void animateHighlight() {
+        if (System.currentTimeMillis() - animationStart >= HIGHLIGHT_MILLIS) {
+            animationTimer.stop();
+            animatedCells.clear();
+        }
         repaint();
     }
 
@@ -145,11 +186,11 @@ public final class GridPanel extends JPanel {
                     int y = metrics.originY + row * (metrics.cell + GAP);
 
                     if (foundCells.contains(cell)) {
-                        g.setColor(Theme.GREEN);
+                        g.setColor(foundColor(cell));
                     } else if (selection.contains(cell)) {
                         g.setColor(Theme.BLUE);
                     } else {
-                        g.setColor(Color.WHITE);
+                        g.setColor(Theme.CELL);
                     }
                     g.fillRoundRect(x, y, metrics.cell, metrics.cell, 10, 10);
 
@@ -165,13 +206,29 @@ public final class GridPanel extends JPanel {
                     int textY = y + (metrics.cell - fontMetrics.getHeight()) / 2
                             + fontMetrics.getAscent();
                     g.setColor(foundCells.contains(cell) || selection.contains(cell)
-                            ? Color.WHITE : Theme.TEXT);
+                            ? Color.WHITE : Theme.CELL_TEXT);
                     g.drawString(text, textX, textY);
                 }
             }
         } finally {
             g.dispose();
         }
+    }
+
+    private Color foundColor(Cell cell) {
+        if (!animatedCells.contains(cell)) return Theme.GREEN;
+
+        long elapsed = System.currentTimeMillis() - animationStart;
+        float progress = Math.min(1f, elapsed / (float) HIGHLIGHT_MILLIS);
+        return blend(Theme.GREEN, Theme.GREEN_LIGHT, 1f - progress);
+    }
+
+    private static Color blend(Color from, Color to, float ratio) {
+        float clamped = Math.max(0f, Math.min(1f, ratio));
+        return new Color(
+                Math.round(from.getRed() + (to.getRed() - from.getRed()) * clamped),
+                Math.round(from.getGreen() + (to.getGreen() - from.getGreen()) * clamped),
+                Math.round(from.getBlue() + (to.getBlue() - from.getBlue()) * clamped));
     }
 
     private Metrics metrics() {

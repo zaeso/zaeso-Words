@@ -4,6 +4,8 @@ import game.config.Difficulty;
 import game.config.GameConfig;
 import game.config.GameSettings;
 import game.config.SettingsStore;
+import game.config.ThemeChoice;
+import game.config.UiSettings;
 import game.dictionary.WordCategory;
 import game.play.GameTimer;
 import game.result.GameResult;
@@ -12,6 +14,7 @@ import game.result.ResultRepository;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -43,18 +46,22 @@ public final class MainWindow extends JFrame {
     private final JPanel root = new JPanel(cards);
     private final ResultRepository repository = ResultRepository.defaultRepository();
     private final SettingsStore settingsStore = SettingsStore.defaultStore();
-    private final GamePanel gamePanel;
-    private final JLabel finishTitle = new JLabel("Раунд пройден");
-    private final JLabel finishSubtitle = new JLabel();
-    private final JLabel finishScore = new JLabel();
-    private final JLabel finishBreakdown = new JLabel();
-    private final JLabel finishTotal = new JLabel();
-    private final JLabel settingsStatus = new JLabel(" ");
+    private GamePanel gamePanel;
+    private JLabel finishTitle;
+    private JLabel finishSubtitle;
+    private JLabel finishScore;
+    private JLabel finishBreakdown;
+    private JLabel finishTotal;
+    private JLabel settingsStatus;
 
     private GameSettings settings;
+    private UiSettings uiSettings;
     private JComboBox<String> difficultyBox;
     private JComboBox<String> categoryBox;
     private JComboBox<GameSettings.BoardSize> sizeBox;
+    private JComboBox<ThemeChoice> themeBox;
+    private JCheckBox soundBox;
+    private JCheckBox animationsBox;
     private JSpinner durationSpinner;
     private boolean updatingSettingsControls;
     private int round = 1;
@@ -71,11 +78,10 @@ public final class MainWindow extends JFrame {
         setLocationRelativeTo(null);
 
         settings = settingsStore.load();
-        gamePanel = new GamePanel(this::roundFinished, this::showMenu, repository);
-        root.add(buildMenu(), MENU);
-        root.add(buildSettings(), SETTINGS);
-        root.add(gamePanel, GAME);
-        root.add(buildFinish(), FINISH);
+        uiSettings = settingsStore.loadUi();
+        Theme.apply(uiSettings.theme());
+
+        rebuildUi();
         setContentPane(root);
 
         showMenu();
@@ -96,7 +102,7 @@ public final class MainWindow extends JFrame {
 
         JLabel subtitle = new JLabel("Бесконечный поиск слов · свои сетка, время и словарь");
         subtitle.setFont(Theme.BODY);
-        subtitle.setForeground(new Color(0xFFE0E0));
+        subtitle.setForeground(Theme.SUBTITLE);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JButton play = Theme.button("Играть", Theme.GREEN);
@@ -180,8 +186,31 @@ public final class MainWindow extends JFrame {
                 GameSettings.MAX_MINUTES,
                 1));
         card.add(settingRow("Длительность, мин", durationSpinner));
+        card.add(Box.createVerticalStrut(18));
+
+        JLabel appearanceTitle = new JLabel("Оформление");
+        appearanceTitle.setFont(Theme.HEADING);
+        appearanceTitle.setForeground(Theme.BLUE);
+        appearanceTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(appearanceTitle);
+        card.add(Box.createVerticalStrut(8));
+
+        themeBox = new JComboBox<>(ThemeChoice.values());
+        themeBox.setSelectedItem(uiSettings.theme());
+        card.add(settingRow("Тема", themeBox));
         card.add(Box.createVerticalStrut(10));
 
+        soundBox = new JCheckBox("Звуковые эффекты", uiSettings.soundEnabled());
+        styleCheckBox(soundBox);
+        card.add(soundBox);
+        card.add(Box.createVerticalStrut(8));
+
+        animationsBox = new JCheckBox("Анимация подсветки", uiSettings.animationsEnabled());
+        styleCheckBox(animationsBox);
+        card.add(animationsBox);
+        card.add(Box.createVerticalStrut(14));
+
+        settingsStatus = new JLabel(" ");
         settingsStatus.setFont(Theme.SMALL);
         settingsStatus.setForeground(Theme.MUTED);
         settingsStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -192,6 +221,9 @@ public final class MainWindow extends JFrame {
         categoryBox.addActionListener(e -> clearSettingsStatus());
         sizeBox.addActionListener(e -> clearSettingsStatus());
         durationSpinner.addChangeListener(e -> clearSettingsStatus());
+        themeBox.addActionListener(e -> themeChanged());
+        soundBox.addActionListener(e -> uiSettingChanged());
+        animationsBox.addActionListener(e -> uiSettingChanged());
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         actions.setOpaque(false);
@@ -279,13 +311,70 @@ public final class MainWindow extends JFrame {
         }
 
         settings = candidate;
+        gamePanel.applyUiSettings(uiSettings);
         try {
             settingsStore.save(candidate);
+            settingsStore.saveUi(uiSettings);
             showSettingsStatus("Настройки сохранены.", Theme.GREEN);
         } catch (IOException e) {
             showSettingsStatus("Не удалось сохранить настройки: " + e.getMessage(), Theme.RED);
         }
         return true;
+    }
+
+    private void styleCheckBox(JCheckBox box) {
+        box.setFont(Theme.BODY);
+        box.setOpaque(false);
+        box.setForeground(Theme.TEXT);
+        box.setAlignmentX(Component.LEFT_ALIGNMENT);
+    }
+
+    private void themeChanged() {
+        UiSettings candidate = uiSettingsFromControls();
+        if (candidate == null) return;
+
+        uiSettings = candidate;
+        persistUi();
+        Theme.apply(uiSettings.theme());
+        rebuildUi();
+        cards.show(root, SETTINGS);
+    }
+
+    private void uiSettingChanged() {
+        UiSettings candidate = uiSettingsFromControls();
+        if (candidate == null) return;
+
+        uiSettings = candidate;
+        gamePanel.applyUiSettings(uiSettings);
+        persistUi();
+    }
+
+    private UiSettings uiSettingsFromControls() {
+        if (themeBox == null || soundBox == null || animationsBox == null) return null;
+        ThemeChoice theme = (ThemeChoice) themeBox.getSelectedItem();
+        if (theme == null) return null;
+        return new UiSettings(theme, soundBox.isSelected(), animationsBox.isSelected());
+    }
+
+    private void persistUi() {
+        try {
+            settingsStore.saveUi(uiSettings);
+            showSettingsStatus("Оформление сохранено.", Theme.GREEN);
+        } catch (IOException e) {
+            showSettingsStatus("Не удалось сохранить оформление: " + e.getMessage(), Theme.RED);
+        }
+    }
+
+    private void rebuildUi() {
+        root.removeAll();
+        gamePanel = new GamePanel(this::roundFinished, this::showMenu, repository);
+        gamePanel.applyUiSettings(uiSettings);
+        root.add(buildMenu(), MENU);
+        root.add(buildSettings(), SETTINGS);
+        root.add(gamePanel, GAME);
+        root.add(buildFinish(), FINISH);
+        root.revalidate();
+        root.repaint();
     }
 
     private Difficulty selectedDifficulty() {
@@ -315,6 +404,12 @@ public final class MainWindow extends JFrame {
         JPanel card = new JPanel();
         Theme.styleCard(card);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+
+        finishTitle = new JLabel("Раунд пройден");
+        finishSubtitle = new JLabel();
+        finishScore = new JLabel();
+        finishBreakdown = new JLabel();
+        finishTotal = new JLabel();
 
         finishTitle.setFont(Theme.TITLE);
         finishTitle.setForeground(Theme.RED);
