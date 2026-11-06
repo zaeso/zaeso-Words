@@ -78,7 +78,7 @@ jobs:
             Либо запустите вручную из папки с JAR:
 
             ```bash
-            java -jar zaeso-words-1.0.1.jar
+            java -jar zaeso-words-1.0.2.jar
             ```
 
             Maven не нужен. Для отладочного консольного режима добавьте `--console`.

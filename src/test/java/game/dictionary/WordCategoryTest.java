@@ -55,6 +55,21 @@ class WordCategoryTest {
     }
 
     @Test
+    void completeDictionaryBuildsTwelveWordPuzzleOnWideGrid() {
+        WordCategory all = WordCategory.all().stream()
+                .filter(WordCategory::streamed)
+                .findFirst()
+                .orElseThrow();
+
+        List<String> pool = all.sampleWords(12, 48, new Random(7L));
+        var result = new game.generator.GridGenerator(7L)
+                .generateChecked(10, 12, pool, 12);
+
+        assertTrue(result.ok(), result::error);
+        assertTrue(result.puzzle().getPlacements().size() >= 12);
+    }
+
+    @Test
     void parsesCategoryByNumberNameAndFileName() {
         WordCategory second = WordCategory.all().get(1);
 

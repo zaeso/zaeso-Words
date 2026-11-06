@@ -23,6 +23,12 @@ import java.util.concurrent.ConcurrentHashMap;
 final class RussianWords {
     private static final String RESOURCE = "/dictionaries/all-russian.txt";
     private static final int POOL_SIZE = 4000;
+    /**
+     * Слова длиннее 10 букв в сетке 10×12 почти не размещаются: они помещаются
+     * только целиком в строку, а случайная раскладка переполняет сетку. Поэтому
+     * для игровых раундов берём слова не длиннее 10 букв.
+     */
+    private static final int MAX_GAME_WORD_LENGTH = 10;
 
     private static final Map<Integer, List<String>> POOLS = new ConcurrentHashMap<>();
     private static final Map<Integer, Long> COUNTS = new ConcurrentHashMap<>();
@@ -34,7 +40,8 @@ final class RussianWords {
         if (count <= 0) {
             return List.of();
         }
-        List<String> pool = POOLS.computeIfAbsent(maxLength, RussianWords::buildPool);
+        int limit = Math.min(maxLength, MAX_GAME_WORD_LENGTH);
+        List<String> pool = POOLS.computeIfAbsent(limit, RussianWords::buildPool);
         if (pool.isEmpty()) {
             return List.of();
         }
@@ -45,7 +52,8 @@ final class RussianWords {
     }
 
     static long count(int maxLength) {
-        return COUNTS.computeIfAbsent(maxLength, RussianWords::countWords);
+        int limit = Math.min(maxLength, MAX_GAME_WORD_LENGTH);
+        return COUNTS.computeIfAbsent(limit, RussianWords::countWords);
     }
 
     private static List<String> buildPool(int maxLength) {
