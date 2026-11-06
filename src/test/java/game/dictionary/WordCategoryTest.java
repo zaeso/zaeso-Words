@@ -3,9 +3,11 @@ package game.dictionary;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,23 +19,39 @@ class WordCategoryTest {
     void loadsCategoriesFromResourceIndex() {
         List<WordCategory> categories = WordCategory.all();
 
-        assertTrue(categories.size() >= 5);
+        assertTrue(categories.size() >= 6);
         assertEquals("Технологии", WordCategory.defaultCategory().displayName());
         assertTrue(WordCategory.all().stream()
                 .anyMatch(category -> category.displayName().equals("Животные")));
+        assertTrue(WordCategory.all().stream()
+                .anyMatch(category -> category.displayName().equals("Все русские слова")
+                        && category.streamed()));
     }
 
     @Test
     void everyCategoryHasEnoughShortWordsForHardGrid() {
         for (WordCategory category : WordCategory.all()) {
-            long usable = category.words().stream()
-                    .filter(word -> word.length() <= 12)
-                    .distinct()
-                    .count();
+            long usable = category.suitableWordCount(12);
 
             assertTrue(usable >= 12,
                     () -> "Категория " + category.displayName() + " содержит только " + usable + " слов");
         }
+    }
+
+    @Test
+    void samplesRandomWordsFromCompleteRussianDictionary() {
+        WordCategory all = WordCategory.all().stream()
+                .filter(WordCategory::streamed)
+                .findFirst()
+                .orElseThrow();
+
+        List<String> first = all.sampleWords(12, 30, new Random(1L));
+        List<String> second = all.sampleWords(12, 30, new Random(2L));
+
+        assertEquals(30, first.size());
+        assertTrue(first.stream().allMatch(word -> word.length() <= 12));
+        assertTrue(first.stream().allMatch(word -> word.matches("[А-ЯЁ]+")));
+        assertNotEquals(first, second);
     }
 
     @Test

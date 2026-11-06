@@ -83,10 +83,7 @@ public record GameSettings(Difficulty difficulty, WordCategory category,
      */
     public String validationError() {
         int maxLength = Math.max(height, width);
-        long suitable = category.words().stream()
-                .filter(word -> word.length() <= maxLength)
-                .distinct()
-                .count();
+        long suitable = category.suitableWordCount(maxLength);
         int required = difficulty.config().minWords();
         if (suitable < required) {
             return "В категории «" + category.displayName() + "» только " + suitable

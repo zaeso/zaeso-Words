@@ -11,24 +11,32 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
 /**
  * Категория слов, загружаемая из ресурсов проекта. Список категорий задаётся
  * в {@code dictionaries/categories.txt}, поэтому новый словарь добавляется
  * без изменения Java-кода.
+ *
+ * <p>Обычные словари загружаются в память целиком. Для больших словарей в
+ * индексе указывается режим {@code stream}: слова выбираются случайной
+ * выборкой, а файл не удерживается в памяти.</p>
  */
 public final class WordCategory {
     private static final String INDEX_RESOURCE = "/dictionaries/categories.txt";
     private static final String BASE_PATH = "/dictionaries/";
+    private static final String STREAM_MODE = "stream";
     private static final List<WordCategory> ALL = loadAll();
 
     private final String displayName;
     private final String fileName;
+    private final boolean streamed;
     private List<String> words;
 
-    private WordCategory(String displayName, String fileName) {
+    private WordCategory(String displayName, String fileName, boolean streamed) {
         this.displayName = displayName;
         this.fileName = fileName;
+        this.streamed = streamed;
     }
 
     public static List<WordCategory> all() {
@@ -64,6 +72,52 @@ public final class WordCategory {
         return fileName;
     }
 
+    public boolean streamed() {
+        return streamed;
+    }
+
+    /**
+     * Возвращает случайные слова категории, подходящие по длине.
+     *
+     * @param maxLength максимальная длина слова
+     * @param count     сколько слов нужно
+     * @param random    источник случайности
+     */
+    public List<String> sampleWords(int maxLength, int count, Random random) {
+        if (count <= 0) return List.of();
+        if (streamed) {
+            return RussianWords.sample(maxLength, count, random);
+        }
+
+        List<String> candidates = new ArrayList<>();
+        for (String word : words()) {
+            if (word.length() <= maxLength) {
+                candidates.add(word);
+            }
+        }
+        Collections.shuffle(candidates, random);
+        return List.copyOf(candidates.subList(0, Math.min(count, candidates.size())));
+    }
+
+    /** Число слов не длиннее указанной, без загрузки большого словаря в память. */
+    public long suitableWordCount(int maxLength) {
+        if (streamed) {
+            return RussianWords.count(maxLength);
+        }
+        return words().stream()
+                .filter(word -> word.length() <= maxLength)
+                .count();
+    }
+
+    /** Подпись с размером словаря для меню настроек. */
+    public String wordCountText() {
+        return streamed ? "очень много слов" : words().size() + " слов";
+    }
+
+    /**
+     * Полный список слов. Для больших словарей этот метод загружает файл
+     * целиком; игровой интерфейс использует {@link #sampleWords}.
+     */
     public synchronized List<String> words() {
         if (words == null) {
             words = loadWords(BASE_PATH + fileName);
@@ -84,12 +138,19 @@ public final class WordCategory {
                 String value = line.trim();
                 if (value.isEmpty() || value.startsWith("#")) continue;
 
-                String[] parts = value.split("\\|", 2);
-                if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+                String[] parts = value.split("\\|", 3);
+                if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) {
                     throw new IllegalStateException(
                             "Некорректная строка индекса словарей: " + value);
                 }
-                categories.add(new WordCategory(parts[0].trim(), parts[1].trim()));
+                boolean streamed = parts.length == 3
+                        && STREAM_MODE.equalsIgnoreCase(parts[2].trim());
+                if (parts.length == 3 && !streamed) {
+                    throw new IllegalStateException(
+                            "Неизвестный режим словаря в строке: " + value);
+                }
+                categories.add(new WordCategory(
+                        parts[0].trim(), parts[1].trim(), streamed));
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Не удалось прочитать индекс словарей.", e);

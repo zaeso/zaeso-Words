@@ -169,7 +169,7 @@ public final class MainWindow extends JFrame {
         categoryBox = new JComboBox<>();
         List<WordCategory> categories = WordCategory.all();
         for (WordCategory value : categories) {
-            categoryBox.addItem(value.displayName() + " — " + value.words().size() + " слов");
+            categoryBox.addItem(value.displayName() + " — " + value.wordCountText());
         }
         categoryBox.setSelectedIndex(Math.max(0, categories.indexOf(settings.category())));
         card.add(settingRow("Категория", categoryBox));

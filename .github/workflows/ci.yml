@@ -64,17 +64,22 @@ jobs:
       - name: Прикрепление JAR к релизу
         uses: softprops/action-gh-release@v2
         with:
-          files: target/zaeso-words-*.jar
+          files: |
+            target/zaeso-words-*.jar
+            run-game.bat
           generate_release_notes: true
           body: |
             ## Запуск
 
-            1. Скачайте `zaeso-words-1.0.0.jar` из раздела Assets.
+            1. Скачайте JAR и `run-game.bat` из раздела Assets и положите их в одну папку.
             2. Установите Java 17 или новее (достаточно JRE).
-            3. Запустите из папки с файлом:
+            3. Дважды кликните `run-game.bat`.
 
-               ```bash
-               java -jar zaeso-words-1.0.0.jar
-               ```
+            Либо запустите вручную из папки с JAR:
+
+            ```bash
+            java -jar zaeso-words-1.0.1.jar
+            ```
 
             Maven не нужен. Для отладочного консольного режима добавьте `--console`.
+            В категории «Все русские слова» сетка собирается из случайных слов полного списка.

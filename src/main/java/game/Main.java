@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
@@ -91,8 +92,11 @@ public class Main {
         }
 
         GameConfig config = settings.toConfig();
+        int maxLength = Math.max(config.height(), config.width());
+        int sampleSize = Math.max(config.minWords() * 4, 30);
+        List<String> pool = category.sampleWords(maxLength, sampleSize, new Random());
         GenerationResult generation = new GridGenerator().generateChecked(
-                config.height(), config.width(), category.words(), config.minWords());
+                config.height(), config.width(), pool, config.minWords());
 
         if (!generation.ok()) {
             System.out.println(generation.error());
@@ -267,8 +271,8 @@ public class Main {
         List<WordCategory> categories = WordCategory.all();
         for (int i = 0; i < categories.size(); i++) {
             WordCategory category = categories.get(i);
-            System.out.printf("  %d. %s — %d слов.%n",
-                    i + 1, category.displayName(), category.words().size());
+            System.out.printf("  %d. %s — %s.%n",
+                    i + 1, category.displayName(), category.wordCountText());
         }
     }
 

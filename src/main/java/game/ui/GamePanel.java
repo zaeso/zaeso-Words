@@ -35,6 +35,8 @@ import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public final class GamePanel extends JPanel {
@@ -189,8 +191,11 @@ public final class GamePanel extends JPanel {
     }
 
     private GenerationResult generate(GameConfig config, WordCategory category) {
+        int maxLength = Math.max(config.height(), config.width());
+        int sampleSize = Math.max(config.minWords() * 4, 30);
+        List<String> pool = category.sampleWords(maxLength, sampleSize, new Random());
         return new GridGenerator().generateChecked(
-                config.height(), config.width(), category.words(), config.minWords());
+                config.height(), config.width(), pool, config.minWords());
     }
 
     private static String leaderboardName(Difficulty difficulty, WordCategory category) {
