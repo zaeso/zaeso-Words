@@ -48,6 +48,7 @@ public final class WordCategory {
         for (WordCategory category : ALL) {
             if (String.valueOf(ALL.indexOf(category) + 1).equals(normalized)
                     || normalize(category.displayName).equals(normalized)
+                    || normalize(category.fileName).equals(normalized)
                     || normalize(category.fileName.replace(".txt", "")).equals(normalized)) {
                 return category;
             }

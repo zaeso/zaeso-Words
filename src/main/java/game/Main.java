@@ -2,6 +2,8 @@ package game;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
+import game.config.GameSettings;
+import game.config.SettingsStore;
 import game.dictionary.WordCategory;
 import game.generator.GridGenerator;
 import game.generator.GridGenerator.GenerationResult;
@@ -12,6 +14,8 @@ import game.ui.MainWindow;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.GraphicsEnvironment;
+import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -40,25 +44,53 @@ public class Main {
 
     private static void runConsole() {
         Scanner scanner = new Scanner(System.in);
+        SettingsStore settingsStore = SettingsStore.defaultStore();
+        GameSettings saved = settingsStore.load();
 
         System.out.println("=== КЛАССИЧЕСКИЙ СКАНВОРД ===");
         printCategoryOptions();
-        WordCategory category = chooseCategory(scanner);
+        WordCategory category = chooseCategory(scanner, saved.category());
         if (category == null) return;
         System.out.println("Выбрана категория: " + category.displayName() + ".");
 
         printDifficultyOptions();
-        Difficulty difficulty = chooseDifficulty(scanner);
+        Difficulty difficulty = chooseDifficulty(scanner, saved.difficulty());
         if (difficulty == null) return;
 
         GameConfig profile = difficulty.config();
         System.out.println("Выбрана сложность: " + difficulty.displayName() + ".");
 
-        int[] size = chooseBoardSize(scanner, profile);
+        boolean sameDifficulty = difficulty == saved.difficulty();
+        int defaultHeight = sameDifficulty ? saved.height() : profile.height();
+        int defaultWidth = sameDifficulty ? saved.width() : profile.width();
+        int[] size = chooseBoardSize(scanner, defaultHeight, defaultWidth);
         if (size == null) return;
 
-        GameConfig config = profile.withBoardSize(size[0], size[1]);
+        Duration defaultTime = sameDifficulty ? saved.timeLimit() : profile.timeLimit();
+        Duration timeLimit = chooseDuration(scanner, defaultTime);
+        if (timeLimit == null) return;
 
+        GameSettings settings;
+        try {
+            settings = new GameSettings(difficulty, category, size[0], size[1], timeLimit);
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
+
+        String validationError = settings.validationError();
+        if (validationError != null) {
+            System.out.println(validationError);
+            return;
+        }
+
+        try {
+            settingsStore.save(settings);
+        } catch (IOException e) {
+            System.out.println("Не удалось сохранить настройки: " + e.getMessage());
+        }
+
+        GameConfig config = settings.toConfig();
         GenerationResult generation = new GridGenerator().generateChecked(
                 config.height(), config.width(), category.words(), config.minWords());
 
@@ -68,15 +100,26 @@ public class Main {
         }
         Puzzle puzzle = generation.puzzle();
 
+        System.out.println("Параметры: " + difficulty.displayName() + ", "
+                + category.displayName() + ", сетка " + config.height() + "×" + config.width()
+                + ", " + config.timeLimit().toMinutes() + " мин.");
         System.out.println("\nНаправления размещения: горизонталь, вертикаль и диагонали.");
         System.out.println("Слова могут пересекаться, только если буквы в общей клетке совпадают.");
-        new ConsoleGame(puzzle, scanner, config, category.displayName()).start();
+        new ConsoleGame(puzzle, scanner, config, leaderboardName(difficulty, category)).start();
+    }
+
+    static String leaderboardName(Difficulty difficulty, WordCategory category) {
+        return difficulty.displayName() + " · " + category.displayName();
     }
 
     static WordCategory chooseCategory(Scanner scanner) {
+        return chooseCategory(scanner, WordCategory.defaultCategory());
+    }
+
+    static WordCategory chooseCategory(Scanner scanner, WordCategory fallback) {
         while (true) {
             System.out.print("Категория (1-" + WordCategory.all().size()
-                    + ", Enter — " + WordCategory.defaultCategory().displayName() + "): ");
+                    + ", Enter — " + fallback.displayName() + "): ");
 
             if (!scanner.hasNextLine()) {
                 System.out.println("\nВвод завершён.");
@@ -85,7 +128,7 @@ public class Main {
 
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) {
-                return WordCategory.defaultCategory();
+                return fallback;
             }
 
             WordCategory category = WordCategory.fromInput(input);
@@ -98,8 +141,13 @@ public class Main {
     }
 
     static Difficulty chooseDifficulty(Scanner scanner) {
+        return chooseDifficulty(scanner, Difficulty.NORMAL);
+    }
+
+    static Difficulty chooseDifficulty(Scanner scanner, Difficulty fallback) {
         while (true) {
-            System.out.print("Сложность (1-3, Enter — обычный): ");
+            System.out.print("Сложность (1-3, Enter — "
+                    + fallback.displayName().toLowerCase() + "): ");
 
             if (!scanner.hasNextLine()) {
                 System.out.println("\nВвод завершён.");
@@ -108,7 +156,7 @@ public class Main {
 
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) {
-                return Difficulty.NORMAL;
+                return fallback;
             }
 
             Difficulty difficulty = Difficulty.fromInput(input);
@@ -126,6 +174,39 @@ public class Main {
 
     static int[] chooseBoardSize(Scanner scanner, GameConfig defaults) {
         return readBoardSize(scanner, defaults.height(), defaults.width());
+    }
+
+    static int[] chooseBoardSize(Scanner scanner, int defaultHeight, int defaultWidth) {
+        return readBoardSize(scanner, defaultHeight, defaultWidth);
+    }
+
+    static Duration chooseDuration(Scanner scanner, Duration defaultLimit) {
+        int defaultMinutes = (int) defaultLimit.toMinutes();
+        while (true) {
+            System.out.print("Длительность в минутах (" + GameSettings.MIN_MINUTES
+                    + "-" + GameSettings.MAX_MINUTES + ", Enter — " + defaultMinutes + "): ");
+
+            if (!scanner.hasNextLine()) {
+                System.out.println("\nВвод завершён.");
+                return null;
+            }
+
+            String input = scanner.nextLine().trim();
+            if (input.isEmpty()) {
+                return Duration.ofMinutes(defaultMinutes);
+            }
+
+            try {
+                int minutes = Integer.parseInt(input);
+                if (minutes >= GameSettings.MIN_MINUTES && minutes <= GameSettings.MAX_MINUTES) {
+                    return Duration.ofMinutes(minutes);
+                }
+            } catch (NumberFormatException ignored) {
+                // Ниже выводится общее пояснение.
+            }
+            System.out.println("Введите целое число минут от " + GameSettings.MIN_MINUTES
+                    + " до " + GameSettings.MAX_MINUTES + ".");
+        }
     }
 
     private static int[] readBoardSize(Scanner scanner, Integer defaultHeight, Integer defaultWidth) {
@@ -178,9 +259,7 @@ public class Main {
     }
 
     static boolean isAllowedSize(int h, int w) {
-        return (h == 10 && w == 10) || (h == 11 && w == 10)
-                || (h == 10 && w == 11) || (h == 12 && w == 10)
-                || (h == 10 && w == 12);
+        return GameSettings.isAllowedSize(h, w);
     }
 
     private static void printCategoryOptions() {

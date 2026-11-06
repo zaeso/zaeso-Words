@@ -2,6 +2,8 @@ package game.ui;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
+import game.config.GameSettings;
+import game.config.SettingsStore;
 import game.dictionary.WordCategory;
 import game.play.GameTimer;
 import game.result.GameResult;
@@ -9,13 +11,15 @@ import game.result.ResultRepository;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -25,6 +29,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.Toolkit;
+import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 public final class MainWindow extends JFrame {
@@ -36,15 +42,21 @@ public final class MainWindow extends JFrame {
     private final CardLayout cards = new CardLayout();
     private final JPanel root = new JPanel(cards);
     private final ResultRepository repository = ResultRepository.defaultRepository();
+    private final SettingsStore settingsStore = SettingsStore.defaultStore();
     private final GamePanel gamePanel;
     private final JLabel finishTitle = new JLabel("Раунд пройден");
     private final JLabel finishSubtitle = new JLabel();
     private final JLabel finishScore = new JLabel();
     private final JLabel finishBreakdown = new JLabel();
     private final JLabel finishTotal = new JLabel();
+    private final JLabel settingsStatus = new JLabel(" ");
 
-    private Difficulty difficulty = Difficulty.NORMAL;
-    private WordCategory category = WordCategory.defaultCategory();
+    private GameSettings settings;
+    private JComboBox<String> difficultyBox;
+    private JComboBox<String> categoryBox;
+    private JComboBox<GameSettings.BoardSize> sizeBox;
+    private JSpinner durationSpinner;
+    private boolean updatingSettingsControls;
     private int round = 1;
     private int totalScore;
 
@@ -58,6 +70,7 @@ public final class MainWindow extends JFrame {
         setSize(width, height);
         setLocationRelativeTo(null);
 
+        settings = settingsStore.load();
         gamePanel = new GamePanel(this::roundFinished, this::showMenu, repository);
         root.add(buildMenu(), MENU);
         root.add(buildSettings(), SETTINGS);
@@ -81,7 +94,7 @@ public final class MainWindow extends JFrame {
         title.setForeground(Color.WHITE);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Бесконечный поиск слов · сетка по сложности");
+        JLabel subtitle = new JLabel("Бесконечный поиск слов · свои сетка, время и словарь");
         subtitle.setFont(Theme.BODY);
         subtitle.setForeground(new Color(0xFFE0E0));
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -125,67 +138,75 @@ public final class MainWindow extends JFrame {
         Theme.styleCard(card);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Настройки");
+        JLabel title = new JLabel("Параметры игры");
         title.setFont(Theme.HEADING);
         title.setForeground(Theme.RED);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(title);
         card.add(Box.createVerticalStrut(6));
 
-        JLabel note = new JLabel("Категория задаёт словарь, сложность — размер, время и подсказки.");
+        JLabel note = new JLabel("Все параметры проверяются до генерации и сохраняются между запусками.");
         note.setFont(Theme.BODY);
         note.setForeground(Theme.MUTED);
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(note);
         card.add(Box.createVerticalStrut(18));
 
-        ButtonGroup difficultyGroup = new ButtonGroup();
+        difficultyBox = new JComboBox<>();
         for (Difficulty value : Difficulty.values()) {
-            GameConfig config = value.config();
-            JRadioButton option = new JRadioButton(value.displayName()
-                    + " — сетка " + config.height() + "×" + config.width()
-                    + ", " + config.timeLimit().toMinutes() + " мин, подсказок " + config.hints());
-            option.setFont(Theme.BODY);
-            option.setOpaque(false);
-            option.setForeground(Theme.TEXT);
-            option.setAlignmentX(Component.LEFT_ALIGNMENT);
-            option.setSelected(value == difficulty);
-            option.addActionListener(e -> difficulty = value);
-            difficultyGroup.add(option);
-            card.add(option);
-            card.add(Box.createVerticalStrut(8));
+            difficultyBox.addItem(value.displayName());
         }
-
+        difficultyBox.setSelectedItem(settings.difficulty().displayName());
+        card.add(settingRow("Сложность", difficultyBox));
         card.add(Box.createVerticalStrut(10));
-        JLabel categoryTitle = new JLabel("Категория слов");
-        categoryTitle.setFont(Theme.HEADING);
-        categoryTitle.setForeground(Theme.BLUE);
-        categoryTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(categoryTitle);
-        card.add(Box.createVerticalStrut(8));
 
-        ButtonGroup categoryGroup = new ButtonGroup();
-        for (WordCategory value : WordCategory.all()) {
-            JRadioButton option = new JRadioButton(value.displayName()
-                    + " — " + value.words().size() + " слов");
-            option.setFont(Theme.BODY);
-            option.setOpaque(false);
-            option.setForeground(Theme.TEXT);
-            option.setAlignmentX(Component.LEFT_ALIGNMENT);
-            option.setSelected(value == category);
-            option.addActionListener(e -> category = value);
-            categoryGroup.add(option);
-            card.add(option);
-            card.add(Box.createVerticalStrut(6));
+        categoryBox = new JComboBox<>();
+        List<WordCategory> categories = WordCategory.all();
+        for (WordCategory value : categories) {
+            categoryBox.addItem(value.displayName() + " — " + value.words().size() + " слов");
         }
+        categoryBox.setSelectedIndex(Math.max(0, categories.indexOf(settings.category())));
+        card.add(settingRow("Категория", categoryBox));
+        card.add(Box.createVerticalStrut(10));
 
-        card.add(Box.createVerticalStrut(20));
+        sizeBox = new JComboBox<>(GameSettings.BOARD_SIZES.toArray(new GameSettings.BoardSize[0]));
+        sizeBox.setSelectedItem(new GameSettings.BoardSize(settings.height(), settings.width()));
+        card.add(settingRow("Размер сетки", sizeBox));
+        card.add(Box.createVerticalStrut(10));
+
+        durationSpinner = new JSpinner(new SpinnerNumberModel(
+                (int) settings.timeLimit().toMinutes(),
+                GameSettings.MIN_MINUTES,
+                GameSettings.MAX_MINUTES,
+                1));
+        card.add(settingRow("Длительность, мин", durationSpinner));
+        card.add(Box.createVerticalStrut(10));
+
+        settingsStatus.setFont(Theme.SMALL);
+        settingsStatus.setForeground(Theme.MUTED);
+        settingsStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(settingsStatus);
+        card.add(Box.createVerticalStrut(18));
+
+        difficultyBox.addActionListener(e -> applyDifficultyDefaults());
+        categoryBox.addActionListener(e -> clearSettingsStatus());
+        sizeBox.addActionListener(e -> clearSettingsStatus());
+        durationSpinner.addChangeListener(e -> clearSettingsStatus());
+
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         actions.setOpaque(false);
         JButton back = Theme.button("Назад", Theme.BLUE);
         JButton play = Theme.button("Играть", Theme.GREEN);
-        back.addActionListener(e -> cards.show(root, MENU));
-        play.addActionListener(e -> startNewGame());
+        back.addActionListener(e -> {
+            if (applySettingsFromControls()) {
+                cards.show(root, MENU);
+            }
+        });
+        play.addActionListener(e -> {
+            if (applySettingsFromControls()) {
+                startNewGame();
+            }
+        });
         actions.add(play);
         actions.add(back);
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -193,6 +214,98 @@ public final class MainWindow extends JFrame {
 
         panel.add(card);
         return panel;
+    }
+
+    private JPanel settingRow(String labelText, JComponent control) {
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setOpaque(false);
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(Theme.BODY);
+        label.setForeground(Theme.TEXT);
+        label.setPreferredSize(new Dimension(170, 30));
+
+        control.setFont(Theme.BODY);
+
+        row.add(label, BorderLayout.WEST);
+        row.add(control, BorderLayout.CENTER);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        return row;
+    }
+
+    private void applyDifficultyDefaults() {
+        if (updatingSettingsControls) return;
+
+        Difficulty selected = selectedDifficulty();
+        if (selected == null) return;
+
+        GameConfig profile = selected.config();
+        updatingSettingsControls = true;
+        try {
+            sizeBox.setSelectedItem(new GameSettings.BoardSize(profile.height(), profile.width()));
+            durationSpinner.setValue((int) profile.timeLimit().toMinutes());
+        } finally {
+            updatingSettingsControls = false;
+        }
+        showSettingsStatus("Размер и время обновлены по сложности «"
+                + selected.displayName() + "».", Theme.MUTED);
+    }
+
+    private boolean applySettingsFromControls() {
+        Difficulty selectedDifficulty = selectedDifficulty();
+        WordCategory selectedCategory = selectedCategory();
+        GameSettings.BoardSize size = (GameSettings.BoardSize) sizeBox.getSelectedItem();
+
+        if (selectedDifficulty == null || selectedCategory == null || size == null) {
+            showSettingsStatus("Выберите сложность, категорию и размер сетки.", Theme.RED);
+            return false;
+        }
+
+        GameSettings candidate;
+        try {
+            candidate = new GameSettings(selectedDifficulty, selectedCategory,
+                    size.height(), size.width(),
+                    Duration.ofMinutes((Integer) durationSpinner.getValue()));
+        } catch (IllegalArgumentException e) {
+            showSettingsStatus(e.getMessage(), Theme.RED);
+            return false;
+        }
+
+        String error = candidate.validationError();
+        if (error != null) {
+            showSettingsStatus(error, Theme.RED);
+            return false;
+        }
+
+        settings = candidate;
+        try {
+            settingsStore.save(candidate);
+            showSettingsStatus("Настройки сохранены.", Theme.GREEN);
+        } catch (IOException e) {
+            showSettingsStatus("Не удалось сохранить настройки: " + e.getMessage(), Theme.RED);
+        }
+        return true;
+    }
+
+    private Difficulty selectedDifficulty() {
+        int index = difficultyBox.getSelectedIndex();
+        return index < 0 ? null : Difficulty.values()[index];
+    }
+
+    private WordCategory selectedCategory() {
+        int index = categoryBox.getSelectedIndex();
+        return index < 0 ? null : WordCategory.all().get(index);
+    }
+
+    private void showSettingsStatus(String text, Color color) {
+        settingsStatus.setForeground(color);
+        settingsStatus.setText(text);
+    }
+
+    private void clearSettingsStatus() {
+        if (updatingSettingsControls) return;
+        settingsStatus.setText(" ");
     }
 
     private JPanel buildFinish() {
@@ -260,7 +373,7 @@ public final class MainWindow extends JFrame {
 
     private void showGame() {
         cards.show(root, GAME);
-        gamePanel.startRound(difficulty, category, round, totalScore);
+        gamePanel.startRound(settings, round, totalScore);
     }
 
     private void showMenu() {
@@ -271,8 +384,10 @@ public final class MainWindow extends JFrame {
     private void roundFinished(GameResult result, boolean timeExpired) {
         totalScore += result.totalScore();
         finishTitle.setText(timeExpired ? "Время вышло" : "Раунд пройден");
-        finishSubtitle.setText("Раунд " + round + " · " + category.displayName() + ": найдено "
-                + result.foundWords() + " из " + result.totalWords()
+        finishSubtitle.setText("Раунд " + round + " · " + settings.difficulty().displayName()
+                + " · " + settings.category().displayName()
+                + " · сетка " + settings.height() + "×" + settings.width()
+                + ": найдено " + result.foundWords() + " из " + result.totalWords()
                 + " · время " + GameTimer.format(result.elapsedSeconds()));
         finishScore.setText("Очки за раунд: " + result.totalScore());
         finishBreakdown.setText(GamePanel.breakdown(result.score()));
@@ -281,14 +396,14 @@ public final class MainWindow extends JFrame {
     }
 
     private void showLeaderboard() {
-        GameConfig config = difficulty.config();
+        GameConfig config = settings.toConfig();
         String name = leaderboardName();
         List<GameResult> top = repository.top(
                 config.height(), config.width(), name, 5);
 
         StringBuilder text = new StringBuilder();
-        text.append("Сложность: ").append(difficulty.displayName())
-                .append(" · ").append(category.displayName())
+        text.append("Сложность: ").append(settings.difficulty().displayName())
+                .append(" · ").append(settings.category().displayName())
                 .append(" · сетка ").append(config.height()).append("×").append(config.width())
                 .append("\n\n");
         if (top.isEmpty()) {
@@ -309,6 +424,6 @@ public final class MainWindow extends JFrame {
     }
 
     private String leaderboardName() {
-        return difficulty.displayName() + " · " + category.displayName();
+        return settings.difficulty().displayName() + " · " + settings.category().displayName();
     }
 }

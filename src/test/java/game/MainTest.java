@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -193,6 +194,55 @@ class MainTest {
 
         assertNull(chosen[0], output);
         assertTrue(output.contains("Ввод завершён."), output);
+    }
+
+    @Test
+    void choosesDurationFromSavedDefaultOnBlankInput() {
+        Duration[] chosen = new Duration[1];
+
+        String output = captureOutput(() ->
+                chosen[0] = Main.chooseDuration(scanner("\n"), Duration.ofMinutes(9)));
+
+        assertEquals(Duration.ofMinutes(9), chosen[0], output);
+    }
+
+    @Test
+    void repeatsDurationAfterInvalidInput() {
+        Duration[] chosen = new Duration[1];
+
+        String output = captureOutput(() ->
+                chosen[0] = Main.chooseDuration(scanner("0\nabc\n61\n15\n"), Duration.ofMinutes(5)));
+
+        assertEquals(Duration.ofMinutes(15), chosen[0], output);
+        assertTrue(output.contains("Введите целое число минут от 1 до 60."), output);
+    }
+
+    @Test
+    void stopsDurationChoiceWhenInputEnds() {
+        Duration[] chosen = new Duration[1];
+
+        String output = captureOutput(() ->
+                chosen[0] = Main.chooseDuration(scanner(""), Duration.ofMinutes(5)));
+
+        assertNull(chosen[0], output);
+        assertTrue(output.contains("Ввод завершён."), output);
+    }
+
+    @Test
+    void usesSavedDefaultsForCategoryAndDifficulty() {
+        WordCategory category = WordCategory.all().get(2);
+        WordCategory[] chosenCategory = new WordCategory[1];
+        Difficulty[] chosenDifficulty = new Difficulty[1];
+
+        String output = captureOutput(() -> {
+            chosenCategory[0] = Main.chooseCategory(scanner("\n"), category);
+            chosenDifficulty[0] = Main.chooseDifficulty(scanner("\n"), Difficulty.HARD);
+        });
+
+        assertEquals(category, chosenCategory[0], output);
+        assertEquals(Difficulty.HARD, chosenDifficulty[0], output);
+        assertTrue(output.contains("Enter — " + category.displayName()), output);
+        assertTrue(output.contains("Enter — сложный"), output);
     }
 
     private static Scanner scanner(String input) {

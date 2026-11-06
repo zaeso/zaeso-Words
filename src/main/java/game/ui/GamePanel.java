@@ -2,6 +2,7 @@ package game.ui;
 
 import game.config.Difficulty;
 import game.config.GameConfig;
+import game.config.GameSettings;
 import game.dictionary.WordCategory;
 import game.generator.GridGenerator;
 import game.generator.GridGenerator.GenerationResult;
@@ -83,11 +84,11 @@ public final class GamePanel extends JPanel {
         input.addActionListener(e -> submitTyped());
     }
 
-    public void startRound(Difficulty difficulty, WordCategory category,
-                           int round, int carriedScore) {
+    public void startRound(GameSettings settings, int round, int carriedScore) {
         this.round = round;
         this.carriedScore = carriedScore;
-        GameConfig config = difficulty.config();
+        GameConfig config = settings.toConfig();
+        WordCategory category = settings.category();
         GenerationResult generation = generate(config, category);
         if (!generation.ok()) {
             session = null;
@@ -98,11 +99,13 @@ public final class GamePanel extends JPanel {
             return;
         }
 
-        session = new GameSession(generation.puzzle(), config, leaderboardName(difficulty, category));
+        session = new GameSession(generation.puzzle(), config,
+                leaderboardName(settings.difficulty(), category));
         session.start();
 
-        roundLabel.setText("Раунд " + round + " · " + difficulty.displayName()
-                + " · " + category.displayName());
+        roundLabel.setText("Раунд " + round + " · " + settings.difficulty().displayName()
+                + " · " + category.displayName()
+                + " · " + config.height() + "×" + config.width());
         totalLabel.setText("Всего очков: " + carriedScore);
         gridPanel.setGrid(session.grid());
         gridPanel.setFoundCells(Set.of());
