@@ -61,6 +61,16 @@ public final class ResultRepository {
     public List<GameResult> top(int height, int width, String difficulty, int limit) {
         if (limit <= 0) return List.of();
 
+        return history(height, width, difficulty).stream()
+                .limit(limit)
+                .toList();
+    }
+
+    /**
+     * Все результаты для размера сетки и сложности в порядке таблицы рекордов.
+     * В отличие от {@link #top} ничего не отбрасывает.
+     */
+    public List<GameResult> history(int height, int width, String difficulty) {
         return load().stream()
                 .filter(result -> result.height() == height && result.width() == width)
                 .filter(result -> Objects.equals(result.difficulty(), difficulty))
@@ -70,7 +80,6 @@ public final class ResultRepository {
                                 .comparingInt(GameResult::foundWords).reversed())
                         .thenComparingLong(GameResult::elapsedSeconds)
                         .thenComparingLong(GameResult::finishedAtEpochSeconds))
-                .limit(limit)
                 .toList();
     }
 

@@ -131,6 +131,20 @@ class ResultRepositoryTest {
     }
 
     @Test
+    void historyReturnsEveryMatchingResultWithoutLimit() throws IOException {
+        ResultRepository repository = new ResultRepository(tempDir.resolve("results.json"));
+        for (long i = 1; i <= 8; i++) {
+            repository.save(result(i, "Обычный", 10, 10, 10, 10, i, 0));
+        }
+        repository.save(result(9, "Другой", 10, 10, 10, 10, 9, 0));
+
+        List<GameResult> history = repository.history(10, 10, "Обычный");
+
+        assertEquals(8, history.size());
+        assertEquals(5, repository.top(10, 10, "Обычный", 5).size());
+    }
+
+    @Test
     void survivesCorruptFileAndBacksItUp() throws IOException {
         Path file = tempDir.resolve("results.json");
         Files.writeString(file, "{ это не JSON", StandardCharsets.UTF_8);

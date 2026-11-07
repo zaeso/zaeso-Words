@@ -11,21 +11,28 @@ import game.daily.DailyStatistics;
 import game.dictionary.WordCategory;
 import game.play.GameTimer;
 import game.result.GameResult;
+import game.result.ResultCsvExporter;
 import game.result.ResultRepository;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -34,9 +41,14 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.Toolkit;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public final class MainWindow extends JFrame {
@@ -44,6 +56,8 @@ public final class MainWindow extends JFrame {
     private static final String SETTINGS = "settings";
     private static final String GAME = "game";
     private static final String FINISH = "finish";
+    private static final DateTimeFormatter HISTORY_DATE =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     private final CardLayout cards = new CardLayout();
     private final JPanel root = new JPanel(cards);
@@ -554,29 +568,109 @@ public final class MainWindow extends JFrame {
     private void showLeaderboard() {
         GameConfig config = settings.toConfig();
         String name = leaderboardName();
-        List<GameResult> top = repository.top(
-                config.height(), config.width(), name, 5);
+        List<GameResult> history = repository.history(
+                config.height(), config.width(), name);
 
-        StringBuilder text = new StringBuilder();
-        text.append("Сложность: ").append(settings.difficulty().displayName())
-                .append(" · ").append(settings.category().displayName())
-                .append(" · сетка ").append(config.height()).append("×").append(config.width())
-                .append("\n\n");
-        if (top.isEmpty()) {
-            text.append("Пока нет сохранённых игр.");
-        } else {
-            for (int i = 0; i < top.size(); i++) {
-                GameResult result = top.get(i);
-                text.append(i + 1).append(". ")
-                        .append(result.totalScore()).append(" очков · ")
-                        .append(result.foundWords()).append("/").append(result.totalWords())
-                        .append(" · ").append(GameTimer.format(result.elapsedSeconds()))
-                        .append("\n");
+        JDialog dialog = new JDialog(this, "Рекорды", true);
+        dialog.setLayout(new BorderLayout(0, 12));
+        dialog.getContentPane().setBackground(Theme.BACKGROUND);
+
+        JLabel header = new JLabel("Полная таблица рекордов · "
+                + settings.difficulty().displayName()
+                + " · " + settings.category().displayName()
+                + " · сетка " + config.height() + "×" + config.width()
+                + " · записей: " + history.size());
+        header.setFont(Theme.BODY);
+        header.setForeground(Theme.TEXT);
+        header.setBorder(BorderFactory.createEmptyBorder(16, 16, 0, 16));
+        dialog.add(header, BorderLayout.NORTH);
+
+        DefaultTableModel model = new DefaultTableModel(
+                new Object[]{"#", "Дата", "Очки", "Найдено", "Время", "Подсказки", "Причина"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
             }
+        };
+        for (int i = 0; i < history.size(); i++) {
+            GameResult result = history.get(i);
+            model.addRow(new Object[]{
+                    i + 1,
+                    historyDate(result.finishedAtEpochSeconds()),
+                    result.totalScore(),
+                    result.foundWords() + "/" + result.totalWords(),
+                    GameTimer.format(result.elapsedSeconds()),
+                    result.hintsUsed(),
+                    result.finishReason()
+            });
         }
 
-        JOptionPane.showMessageDialog(this, text.toString(), "Рекорды",
-                JOptionPane.INFORMATION_MESSAGE);
+        JTable table = new JTable(model);
+        table.setFont(Theme.BODY);
+        table.setRowHeight(26);
+        table.setBackground(Theme.PANEL);
+        table.setForeground(Theme.TEXT);
+        table.setGridColor(Theme.BORDER);
+        table.setSelectionBackground(Theme.BLUE);
+        table.setSelectionForeground(Color.WHITE);
+        table.setFillsViewportHeight(true);
+        table.setAutoCreateRowSorter(true);
+        table.getTableHeader().setFont(Theme.SMALL);
+        table.getTableHeader().setReorderingAllowed(false);
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(0, 16, 0, 16),
+                BorderFactory.createLineBorder(Theme.BORDER)));
+        scroll.setPreferredSize(new Dimension(820, 420));
+        dialog.add(scroll, BorderLayout.CENTER);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.setOpaque(false);
+        actions.setBorder(BorderFactory.createEmptyBorder(0, 16, 16, 16));
+        JButton export = Theme.button("Экспорт CSV", Theme.GREEN);
+        JButton close = Theme.button("Закрыть", Theme.RED_DARK);
+        export.setEnabled(!repository.load().isEmpty());
+        export.addActionListener(e -> exportHistory(dialog));
+        close.addActionListener(e -> dialog.dispose());
+        actions.add(export);
+        actions.add(close);
+        dialog.add(actions, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void exportHistory(Component parent) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Экспорт истории в CSV");
+        chooser.setSelectedFile(new File("zaeso-words-history.csv"));
+        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        Path path = chooser.getSelectedFile().toPath();
+        if (!path.getFileName().toString().toLowerCase().endsWith(".csv")) {
+            path = path.resolveSibling(path.getFileName() + ".csv");
+        }
+
+        try {
+            ResultCsvExporter.write(path, repository.load());
+            JOptionPane.showMessageDialog(parent,
+                    "История экспортирована:\n" + path,
+                    "Экспорт CSV", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(parent,
+                    "Не удалось экспортировать историю:\n" + e.getMessage(),
+                    "Ошибка экспорта", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static String historyDate(long epochSeconds) {
+        return Instant.ofEpochSecond(epochSeconds)
+                .atZone(ZoneId.systemDefault())
+                .format(HISTORY_DATE);
     }
 
     private String leaderboardName() {

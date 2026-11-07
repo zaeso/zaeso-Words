@@ -29,7 +29,6 @@ import java.util.Set;
 public class ConsoleGame {
     private static final Duration DEFAULT_TIME_LIMIT = Duration.ofMinutes(5);
     private static final int DEFAULT_HINTS = 2;
-    private static final int LEADERBOARD_SIZE = 5;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private final Scanner scanner;
@@ -185,8 +184,8 @@ public class ConsoleGame {
     }
 
     private void printLeaderboard(int height, int width) {
-        List<GameResult> top = resultRepository.top(
-                height, width, session.difficultyName(), LEADERBOARD_SIZE);
+        List<GameResult> top = resultRepository.history(
+                height, width, session.difficultyName());
         System.out.println("\nЛучшие результаты — " + session.difficultyName()
                 + ", " + height + "x" + width + ":");
         if (top.isEmpty()) {
