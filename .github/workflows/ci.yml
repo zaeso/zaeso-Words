@@ -35,7 +35,7 @@ jobs:
       - name: Сохранение JAR
         uses: actions/upload-artifact@v4
         with:
-          name: zaeso-words-jar
+          name: zaeso-words-jar-java8
           path: target/zaeso-words-*.jar
           if-no-files-found: error
 
@@ -52,7 +52,7 @@ jobs:
       - name: Сохранение JAR
         uses: actions/upload-artifact@v4
         with:
-          name: zaeso-words-jar
+          name: zaeso-words-jar-java17
           path: target/zaeso-words-*.jar
           if-no-files-found: error
 
