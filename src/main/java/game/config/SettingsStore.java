@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Objects;
@@ -36,7 +37,7 @@ public final class SettingsStore {
 
     public static SettingsStore defaultStore() {
         String home = System.getProperty("user.home", ".");
-        return new SettingsStore(Path.of(home, ".zaeso-words", FILE_NAME));
+        return new SettingsStore(Paths.get(home, ".zaeso-words", FILE_NAME));
     }
 
     public Path getFile() {

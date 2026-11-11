@@ -134,12 +134,11 @@ public final class MainWindow extends JFrame {
         JButton records = Theme.button("Рекорды", Theme.BLUE);
         JButton exit = Theme.button("Выход", Theme.RED_DARK);
 
-        play.setAlignmentX(Component.CENTER_ALIGNMENT);
-        daily.setAlignmentX(Component.CENTER_ALIGNMENT);
-        statistics.setAlignmentX(Component.CENTER_ALIGNMENT);
-        settings.setAlignmentX(Component.CENTER_ALIGNMENT);
-        records.setAlignmentX(Component.CENTER_ALIGNMENT);
-        exit.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JButton[] buttons = {play, daily, statistics, settings, records, exit};
+        for (JButton button : buttons) {
+            button.setAlignmentX(Component.CENTER_ALIGNMENT);
+            button.setMaximumSize(new Dimension(280, 46));
+        }
 
         play.addActionListener(e -> startNewGame());
         daily.addActionListener(e -> startDailyGame());
@@ -153,15 +152,15 @@ public final class MainWindow extends JFrame {
         content.add(subtitle);
         content.add(Box.createVerticalStrut(30));
         content.add(play);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
         content.add(daily);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
         content.add(statistics);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
         content.add(settings);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
         content.add(records);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
         content.add(exit);
 
         panel.add(content);

@@ -186,7 +186,11 @@ public final class GridPanel extends JPanel {
         int colDelta = to.col - from.col;
         boolean straight = rowDelta == 0 || colDelta == 0
                 || Math.abs(rowDelta) == Math.abs(colDelta);
-        if (!straight) return List.of(from);
+        if (!straight) {
+            List<Cell> only = new ArrayList<>(1);
+            only.add(from);
+            return only;
+        }
 
         int rowStep = Integer.signum(rowDelta);
         int colStep = Integer.signum(colDelta);
@@ -290,9 +294,52 @@ public final class GridPanel extends JPanel {
         return new Metrics(cell, originX, originY);
     }
 
-    public record Cell(int row, int col) {
+    /** Клетка сетки: строка и столбец, отсчитываемые от нуля. */
+    public static final class Cell {
+        private final int row;
+        private final int col;
+
+        public Cell(int row, int col) {
+            this.row = row;
+            this.col = col;
+        }
+
+        public int row() {
+            return row;
+        }
+
+        public int col() {
+            return col;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Cell)) return false;
+            Cell cell = (Cell) other;
+            return row == cell.row && col == cell.col;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * row + col;
+        }
+
+        @Override
+        public String toString() {
+            return "Cell[row=" + row + ", col=" + col + "]";
+        }
     }
 
-    private record Metrics(int cell, int originX, int originY) {
+    private static final class Metrics {
+        private final int cell;
+        private final int originX;
+        private final int originY;
+
+        Metrics(int cell, int originX, int originY) {
+            this.cell = cell;
+            this.originX = originX;
+            this.originY = originY;
+        }
     }
 }

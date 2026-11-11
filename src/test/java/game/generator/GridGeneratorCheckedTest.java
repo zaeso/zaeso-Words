@@ -5,6 +5,7 @@ import game.model.Puzzle;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,7 +17,7 @@ class GridGeneratorCheckedTest {
     @Test
     void reportsHowManyWordsAreAvailable() {
         GenerationResult result = new GridGenerator(1L)
-                .generateChecked(10, 10, List.of("КОТ", "ДОМ"), 5);
+                .generateChecked(10, 10, Arrays.asList("КОТ", "ДОМ"), 5);
 
         assertFalse(result.ok());
         assertNull(result.puzzle());
@@ -28,7 +29,7 @@ class GridGeneratorCheckedTest {
     @Test
     void reportsEmptyDictionary() {
         GenerationResult result = new GridGenerator(2L)
-                .generateChecked(10, 10, List.of(), 1);
+                .generateChecked(10, 10, Arrays.asList(), 1);
 
         assertFalse(result.ok());
         assertTrue(result.error().contains("словарь пуст"));
@@ -37,7 +38,7 @@ class GridGeneratorCheckedTest {
     @Test
     void reportsWhenNoWordFitsTheGrid() {
         GenerationResult result = new GridGenerator(3L)
-                .generateChecked(5, 5, List.of("СЛИШКОМДЛИННОЕ"), 1);
+                .generateChecked(5, 5, Arrays.asList("СЛИШКОМДЛИННОЕ"), 1);
 
         assertFalse(result.ok());
         assertTrue(result.error().contains("нет слов длиной до 5"));
@@ -46,7 +47,7 @@ class GridGeneratorCheckedTest {
     @Test
     void returnsPuzzleWhenGenerationSucceeds() {
         GenerationResult result = new GridGenerator(4L)
-                .generateChecked(10, 10, List.of("КОТ", "ДОМ", "СЛОН"), 2);
+                .generateChecked(10, 10, Arrays.asList("КОТ", "ДОМ", "СЛОН"), 2);
 
         assertTrue(result.ok());
         assertNull(result.error());

@@ -1,6 +1,7 @@
 package game.play;
 
 import game.config.GameConfig;
+import game.model.Placement;
 import game.model.Puzzle;
 import game.result.GameResult;
 import game.result.ResultRepository;
@@ -66,7 +67,7 @@ public class ConsoleGame {
         if (session.hintsLimit() > 0) {
             System.out.println("Доступно подсказок: " + session.hintsLimit()
                     + ". HINT или ПОДСКАЗКА открывает букву и направление за "
-                    + GameTimer.format(GameSession.HINT_PENALTY.toSeconds()) + ".");
+                    + GameTimer.format(GameSession.HINT_PENALTY.getSeconds()) + ".");
         }
         printGrid();
         printWordList(allWords);
@@ -102,13 +103,13 @@ public class ConsoleGame {
                 }
 
                 switch (session.submitWord(answer)) {
-                    case EMPTY -> System.out.println("Пустой ввод. Введите слово целиком.");
-                    case NON_CYRILLIC -> System.out.println("Используйте только русские буквы.");
-                    case TOO_LONG -> System.out.println("Слово слишком длинное.");
-                    case NOT_IN_LIST -> System.out.println("Такого слова нет в списке.");
-                    case ALREADY_FOUND -> System.out.println("Это слово уже найдено.");
-                    case FOUND -> System.out.println("Верно! Найдено: "
-                            + session.foundCount() + " из " + session.totalWords());
+                    case EMPTY: System.out.println("Пустой ввод. Введите слово целиком."); break;
+                    case NON_CYRILLIC: System.out.println("Используйте только русские буквы."); break;
+                    case TOO_LONG: System.out.println("Слово слишком длинное."); break;
+                    case NOT_IN_LIST: System.out.println("Такого слова нет в списке."); break;
+                    case ALREADY_FOUND: System.out.println("Это слово уже найдено."); break;
+                    case FOUND: System.out.println("Верно! Найдено: "
+                            + session.foundCount() + " из " + session.totalWords()); break;
                 }
             }
         } finally {
@@ -151,11 +152,11 @@ public class ConsoleGame {
             return;
         }
 
-        var placement = hint.placement();
+        Placement placement = hint.placement();
         System.out.printf("Подсказка %d из %d (минус %s): слово из %d букв начинается с «%c», направление — %s.%n",
                 hint.used(),
                 hint.limit(),
-                GameTimer.format(GameSession.HINT_PENALTY.toSeconds()),
+                GameTimer.format(GameSession.HINT_PENALTY.getSeconds()),
                 placement.word().length(),
                 placement.word().charAt(0),
                 placement.direction().description());

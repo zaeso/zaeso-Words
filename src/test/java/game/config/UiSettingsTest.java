@@ -85,11 +85,9 @@ class UiSettingsTest {
     @Test
     void invalidValuesFallBackToDefaults() throws IOException {
         Path file = tempDir.resolve("settings.properties");
-        Files.writeString(file, """
-                theme=unknown
-                sound=maybe
-                animations=42
-                """, StandardCharsets.UTF_8);
+        writeUtf8(file, "theme=unknown\n"
+                + "sound=maybe\n"
+                + "animations=42\n");
 
         assertEquals(UiSettings.defaults(), new SettingsStore(file).loadUi());
     }
@@ -100,5 +98,9 @@ class UiSettingsTest {
         assertEquals(ThemeChoice.OCEAN, ThemeChoice.fromInput("океан"));
         assertEquals(ThemeChoice.DARK, ThemeChoice.fromInput(" Тёмная "));
         assertNull(ThemeChoice.fromInput("нет такой темы"));
+    }
+
+    private static void writeUtf8(Path file, String content) throws IOException {
+        Files.write(file, content.getBytes(StandardCharsets.UTF_8));
     }
 }

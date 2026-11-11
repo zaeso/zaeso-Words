@@ -248,14 +248,19 @@ class MainTest {
     private static Scanner scanner(String input) {
         return new Scanner(
                 new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)),
-                StandardCharsets.UTF_8
+                "UTF-8"
         );
     }
 
     private static String captureOutput(Runnable action) {
         PrintStream originalOut = System.out;
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        PrintStream captureStream = new PrintStream(captured, true, StandardCharsets.UTF_8);
+        PrintStream captureStream;
+        try {
+            captureStream = new PrintStream(captured, true, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
         System.setOut(captureStream);
         try {
             action.run();
@@ -263,6 +268,6 @@ class MainTest {
             System.setOut(originalOut);
             captureStream.flush();
         }
-        return captured.toString(StandardCharsets.UTF_8);
+        return new String(captured.toByteArray(), StandardCharsets.UTF_8);
     }
 }

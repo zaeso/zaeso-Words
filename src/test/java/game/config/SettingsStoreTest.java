@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,7 +52,7 @@ class SettingsStoreTest {
     @Test
     void survivesCorruptFile() throws IOException {
         Path file = tempDir.resolve("settings.properties");
-        Files.writeString(file, "difficulty=\\uZZZZ", StandardCharsets.UTF_8);
+        Files.write(file, "difficulty=\\uZZZZ".getBytes(StandardCharsets.UTF_8));
 
         assertEquals(GameSettings.defaults(), new SettingsStore(file).load());
     }
@@ -59,13 +60,11 @@ class SettingsStoreTest {
     @Test
     void fallsBackToDifficultyProfileForInvalidFields() throws IOException {
         Path file = tempDir.resolve("settings.properties");
-        Files.writeString(file, """
-                difficulty=HARD
-                category=unknown
-                height=999
-                width=3
-                minutes=999
-                """, StandardCharsets.UTF_8);
+        writeUtf8(file, "difficulty=HARD\n"
+                + "category=unknown\n"
+                + "height=999\n"
+                + "width=3\n"
+                + "minutes=999\n");
 
         GameSettings settings = new SettingsStore(file).load();
 
@@ -80,7 +79,11 @@ class SettingsStoreTest {
     void defaultStoreUsesUserHome() {
         Path file = SettingsStore.defaultStore().getFile();
 
-        assertEquals(Path.of(System.getProperty("user.home"), ".zaeso-words", "settings.properties"),
+        assertEquals(Paths.get(System.getProperty("user.home"), ".zaeso-words", "settings.properties"),
                 file);
+    }
+
+    private static void writeUtf8(Path file, String content) throws IOException {
+        Files.write(file, content.getBytes(StandardCharsets.UTF_8));
     }
 }

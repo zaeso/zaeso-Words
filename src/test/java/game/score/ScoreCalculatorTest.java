@@ -3,6 +3,7 @@ package game.score;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,7 +12,7 @@ class ScoreCalculatorTest {
 
     @Test
     void awardsPointsForEveryFoundLetter() {
-        Score score = ScoreCalculator.calculate(List.of("КОТ", "ДОМ"), 3, 0, 0, 0);
+        Score score = ScoreCalculator.calculate(Arrays.asList("КОТ", "ДОМ"), 3, 0, 0, 0);
 
         assertEquals(75, score.wordPoints());
         assertEquals(0, score.timeBonus());
@@ -20,8 +21,8 @@ class ScoreCalculatorTest {
 
     @Test
     void addsTimeBonusOnlyWhenAllWordsAreFound() {
-        Score incomplete = ScoreCalculator.calculate(List.of("КОТ"), 2, 300, 0, 0);
-        Score completed = ScoreCalculator.calculate(List.of("КОТ", "ДОМ"), 2, 300, 0, 0);
+        Score incomplete = ScoreCalculator.calculate(Arrays.asList("КОТ"), 2, 300, 0, 0);
+        Score completed = ScoreCalculator.calculate(Arrays.asList("КОТ", "ДОМ"), 2, 300, 0, 0);
 
         assertEquals(0, incomplete.timeBonus());
         assertEquals(600, completed.timeBonus());
@@ -29,7 +30,7 @@ class ScoreCalculatorTest {
 
     @Test
     void subtractsMistakesAndHints() {
-        Score score = ScoreCalculator.calculate(List.of("КОТ"), 1, 60, 2, 1);
+        Score score = ScoreCalculator.calculate(Arrays.asList("КОТ"), 1, 60, 2, 1);
 
         assertEquals(35, score.wordPoints());
         assertEquals(120, score.timeBonus());
@@ -40,14 +41,14 @@ class ScoreCalculatorTest {
 
     @Test
     void neverReturnsNegativeTotal() {
-        Score score = ScoreCalculator.calculate(List.of(), 5, 0, 10, 3);
+        Score score = ScoreCalculator.calculate(Arrays.asList(), 5, 0, 10, 3);
 
         assertEquals(0, score.total());
     }
 
     @Test
     void acceptsEmptyBoardWithoutWords() {
-        Score score = ScoreCalculator.calculate(List.of(), 0, 100, 0, 0);
+        Score score = ScoreCalculator.calculate(Arrays.asList(), 0, 100, 0, 0);
 
         assertEquals(0, score.wordPoints());
         assertEquals(0, score.timeBonus());
@@ -61,12 +62,12 @@ class ScoreCalculatorTest {
         assertThrows(NullPointerException.class,
                 () -> ScoreCalculator.calculate(java.util.Arrays.asList("КОТ", null), 1, 0, 0, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> ScoreCalculator.calculate(List.of(), -1, 0, 0, 0));
+                () -> ScoreCalculator.calculate(Arrays.asList(), -1, 0, 0, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> ScoreCalculator.calculate(List.of(), 1, -1, 0, 0));
+                () -> ScoreCalculator.calculate(Arrays.asList(), 1, -1, 0, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> ScoreCalculator.calculate(List.of(), 1, 0, -1, 0));
+                () -> ScoreCalculator.calculate(Arrays.asList(), 1, 0, -1, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> ScoreCalculator.calculate(List.of(), 1, 0, 0, -1));
+                () -> ScoreCalculator.calculate(Arrays.asList(), 1, 0, 0, -1));
     }
 }

@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,12 +19,12 @@ class DailyStatisticsTest {
     @Test
     void emptyHistoryGivesZeroes() {
         assertEquals(DailyStatistics.EMPTY,
-                DailyStatistics.from(List.of(), TODAY, UTC));
+                DailyStatistics.from(Arrays.asList(), TODAY, UTC));
     }
 
     @Test
     void ignoresRegularGames() {
-        List<GameResult> results = List.of(
+        List<GameResult> results = Arrays.asList(
                 result(TODAY, "Обычный", 500, 10),
                 result(TODAY.minusDays(1), "Сложный", 400, 8));
 
@@ -32,7 +33,7 @@ class DailyStatisticsTest {
 
     @Test
     void calculatesBestScoreWordsAndDaysPlayed() {
-        List<GameResult> results = List.of(
+        List<GameResult> results = Arrays.asList(
                 result(TODAY, DailyPuzzle.RESULT_LABEL, 300, 9),
                 result(TODAY.minusDays(1), DailyPuzzle.RESULT_LABEL, 250, 7),
                 result(TODAY.minusDays(2), DailyPuzzle.RESULT_LABEL, 100, 4));
@@ -47,7 +48,7 @@ class DailyStatisticsTest {
 
     @Test
     void streakContinuesFromYesterdayWhenTodayIsNotPlayedYet() {
-        List<GameResult> results = List.of(
+        List<GameResult> results = Arrays.asList(
                 result(TODAY.minusDays(1), DailyPuzzle.RESULT_LABEL, 200, 5),
                 result(TODAY.minusDays(2), DailyPuzzle.RESULT_LABEL, 150, 4));
 
@@ -56,7 +57,7 @@ class DailyStatisticsTest {
 
     @Test
     void missedDayBreaksStreak() {
-        List<GameResult> results = List.of(
+        List<GameResult> results = Arrays.asList(
                 result(TODAY.minusDays(2), DailyPuzzle.RESULT_LABEL, 200, 5),
                 result(TODAY.minusDays(3), DailyPuzzle.RESULT_LABEL, 150, 4));
 
@@ -65,7 +66,7 @@ class DailyStatisticsTest {
 
     @Test
     void severalGamesOnSameDayCountAsOneDay() {
-        List<GameResult> results = List.of(
+        List<GameResult> results = Arrays.asList(
                 result(TODAY, DailyPuzzle.RESULT_LABEL, 200, 5),
                 result(TODAY, DailyPuzzle.RESULT_LABEL, 350, 6));
 

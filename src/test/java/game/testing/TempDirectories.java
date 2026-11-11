@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -18,7 +21,7 @@ import java.util.stream.Stream;
  * {@code target/}.</p>
  */
 public final class TempDirectories {
-    private static final Path BASE = Path.of("target", "test-temp");
+    private static final Path BASE = Paths.get("target", "test-temp");
     private static final int DELETE_ATTEMPTS = 5;
 
     private TempDirectories() {
@@ -54,7 +57,8 @@ public final class TempDirectories {
         if (!Files.exists(directory)) return;
 
         try (Stream<Path> paths = Files.walk(directory)) {
-            List<Path> ordered = paths.sorted(Comparator.reverseOrder()).toList();
+            List<Path> ordered = paths.sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toCollection(ArrayList::new));
             for (Path path : ordered) {
                 Files.deleteIfExists(path);
             }

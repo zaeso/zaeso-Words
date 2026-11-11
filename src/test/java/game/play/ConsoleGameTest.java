@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -111,7 +112,7 @@ class ConsoleGameTest {
     void rejectsDuplicateWord() {
         Puzzle puzzle = new Puzzle(
                 new char[][]{{'К', 'О', 'Т'}, {'Д', 'О', 'М'}},
-                List.of(
+                Arrays.asList(
                         new Placement("КОТ", 0, 0, new Direction(0, 1)),
                         new Placement("ДОМ", 1, 0, new Direction(0, 1))
                 )
@@ -232,7 +233,7 @@ class ConsoleGameTest {
     @Test
     void keepsPlayingWhenResultCannotBeSaved() throws IOException {
         Path blocked = tempDir.resolve("not-a-directory");
-        java.nio.file.Files.writeString(blocked, "занято");
+        java.nio.file.Files.write(blocked, "занято".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         ResultRepository broken = new ResultRepository(blocked.resolve("results.json"));
 
         String output = runGame(oneWordPuzzle(), "кот\n", hintConfig(2), broken, "Тест");
@@ -292,11 +293,16 @@ class ConsoleGameTest {
 
     private String runGame(Puzzle puzzle, InputStream input, GameConfig config,
                            ResultRepository repository, String difficultyName) {
-        Scanner scanner = new Scanner(input, StandardCharsets.UTF_8);
+        Scanner scanner = new Scanner(input, "UTF-8");
 
         PrintStream originalOut = System.out;
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        PrintStream captureStream = new PrintStream(captured, true, StandardCharsets.UTF_8);
+        PrintStream captureStream;
+        try {
+            captureStream = new PrintStream(captured, true, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
         System.setOut(captureStream);
         try {
             new ConsoleGame(puzzle, scanner, config, difficultyName, repository).start();
@@ -304,20 +310,20 @@ class ConsoleGameTest {
             System.setOut(originalOut);
             captureStream.flush();
         }
-        return captured.toString(StandardCharsets.UTF_8);
+        return new String(captured.toByteArray(), StandardCharsets.UTF_8);
     }
 
     private static Puzzle oneWordPuzzle() {
         return new Puzzle(
                 new char[][]{{'К', 'О', 'Т'}},
-                List.of(new Placement("КОТ", 0, 0, new Direction(0, 1)))
+                Arrays.asList(new Placement("КОТ", 0, 0, new Direction(0, 1)))
         );
     }
 
     private static Puzzle twoWordPuzzle() {
         return new Puzzle(
                 new char[][]{{'К', 'О', 'Т'}, {'Д', 'О', 'М'}},
-                List.of(
+                Arrays.asList(
                         new Placement("КОТ", 0, 0, new Direction(0, 1)),
                         new Placement("ДОМ", 1, 0, new Direction(0, 1))
                 )

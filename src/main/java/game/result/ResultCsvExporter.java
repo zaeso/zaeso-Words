@@ -25,7 +25,8 @@ public final class ResultCsvExporter {
     }
 
     public static void write(Path file, List<GameResult> results) throws IOException {
-        Files.writeString(file, toCsv(results), StandardCharsets.UTF_8);
+        byte[] bytes = toCsv(results).getBytes(StandardCharsets.UTF_8);
+        Files.write(file, bytes);
     }
 
     public static String toCsv(List<GameResult> results) {

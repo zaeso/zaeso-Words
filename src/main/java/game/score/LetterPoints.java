@@ -32,15 +32,23 @@ public final class LetterPoints {
      * @throws IllegalArgumentException если символ не является буквой русского алфавита
      */
     public static int pointsFor(char letter) {
-        return switch (Character.toUpperCase(letter)) {
-            case 'О', 'Е', 'А', 'И', 'Н', 'Т', 'С', 'Р', 'В', 'Л' -> COMMON;
-            case 'К', 'М', 'Д', 'П', 'У', 'Я' -> REGULAR;
-            case 'Ы', 'Ь', 'Г', 'З', 'Б', 'Ч' -> LESS_COMMON;
-            case 'Й', 'Х', 'Ж', 'Ш', 'Ю', 'Ц', 'Щ', 'Э', 'Ф' -> RARE;
-            case 'Ъ', 'Ё' -> VERY_RARE;
-            default -> throw new IllegalArgumentException(
-                    "Неподдерживаемая буква: " + letter);
-        };
+        switch (Character.toUpperCase(letter)) {
+            case 'О': case 'Е': case 'А': case 'И': case 'Н':
+            case 'Т': case 'С': case 'Р': case 'В': case 'Л':
+                return COMMON;
+            case 'К': case 'М': case 'Д': case 'П': case 'У': case 'Я':
+                return REGULAR;
+            case 'Ы': case 'Ь': case 'Г': case 'З': case 'Б': case 'Ч':
+                return LESS_COMMON;
+            case 'Й': case 'Х': case 'Ж': case 'Ш': case 'Ю':
+            case 'Ц': case 'Щ': case 'Э': case 'Ф':
+                return RARE;
+            case 'Ъ': case 'Ё':
+                return VERY_RARE;
+            default:
+                throw new IllegalArgumentException(
+                        "Неподдерживаемая буква: " + letter);
+        }
     }
 
     /**

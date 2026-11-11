@@ -84,7 +84,7 @@ public final class WordCategory {
      * @param random    источник случайности
      */
     public List<String> sampleWords(int maxLength, int count, Random random) {
-        if (count <= 0) return List.of();
+        if (count <= 0) return Collections.emptyList();
         if (streamed) {
             return RussianWords.sample(maxLength, count, random);
         }
@@ -96,7 +96,8 @@ public final class WordCategory {
             }
         }
         Collections.shuffle(candidates, random);
-        return List.copyOf(candidates.subList(0, Math.min(count, candidates.size())));
+        return Collections.unmodifiableList(
+                candidates.subList(0, Math.min(count, candidates.size())));
     }
 
     /** Число слов не длиннее указанной, без загрузки большого словаря в память. */
@@ -104,9 +105,13 @@ public final class WordCategory {
         if (streamed) {
             return RussianWords.count(maxLength);
         }
-        return words().stream()
-                .filter(word -> word.length() <= maxLength)
-                .count();
+        long total = 0;
+        for (String word : words()) {
+            if (word.length() <= maxLength) {
+                total++;
+            }
+        }
+        return total;
     }
 
     /** Подпись с размером словаря для меню настроек. */
@@ -139,7 +144,7 @@ public final class WordCategory {
                 if (value.isEmpty() || value.startsWith("#")) continue;
 
                 String[] parts = value.split("\\|", 3);
-                if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) {
+                if (parts.length < 2 || parts[0].trim().isEmpty() || parts[1].trim().isEmpty()) {
                     throw new IllegalStateException(
                             "Некорректная строка индекса словарей: " + value);
                 }
@@ -175,7 +180,7 @@ public final class WordCategory {
         } catch (IOException e) {
             throw new UncheckedIOException("Не удалось прочитать словарь " + resource, e);
         }
-        return List.copyOf(loaded);
+        return Collections.unmodifiableList(new ArrayList<>(loaded));
     }
 
     private static BufferedReader open(String resource) {

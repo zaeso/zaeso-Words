@@ -15,6 +15,7 @@ import game.score.Score;
 import game.session.GameSession;
 import game.session.GameSession.FinishReason;
 import game.session.GameSession.HintResult;
+import game.session.GameSession.HintStatus;
 import game.session.GameSession.WordResult;
 
 import javax.swing.BorderFactory;
@@ -34,6 +35,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -137,7 +139,7 @@ public final class GamePanel extends JPanel {
                         + " · " + config.height() + "×" + config.width());
         totalLabel.setText("Всего очков: " + carriedScore);
         gridPanel.setGrid(session.grid());
-        gridPanel.setFoundCells(Map.of());
+        gridPanel.setFoundCells(Collections.emptyMap());
         rebuildWordList();
         setControlsEnabled(true);
         statusLabel.setForeground(Theme.MUTED);
@@ -223,18 +225,21 @@ public final class GamePanel extends JPanel {
         if (session == null || session.isFinished()) return;
 
         WordResult result = session.submitWord(word);
-        switch (result) {
-            case FOUND -> {
-                statusLabel.setForeground(Theme.GREEN);
-                statusLabel.setText("Найдено: " + word.trim().toUpperCase());
-                refreshFound();
-                playSound(SoundPlayer::found);
-            }
-            case EMPTY -> showError("Введите слово");
-            case NON_CYRILLIC -> showError("Только русские буквы");
-            case TOO_LONG -> showError("Слово слишком длинное");
-            case NOT_IN_LIST -> showError("Такого слова нет в списке");
-            case ALREADY_FOUND -> showError("Слово уже найдено");
+        if (result == WordResult.FOUND) {
+            statusLabel.setForeground(Theme.GREEN);
+            statusLabel.setText("Найдено: " + word.trim().toUpperCase());
+            refreshFound();
+            playSound(SoundPlayer::found);
+        } else if (result == WordResult.EMPTY) {
+            showError("Введите слово");
+        } else if (result == WordResult.NON_CYRILLIC) {
+            showError("Только русские буквы");
+        } else if (result == WordResult.TOO_LONG) {
+            showError("Слово слишком длинное");
+        } else if (result == WordResult.NOT_IN_LIST) {
+            showError("Такого слова нет в списке");
+        } else if (result == WordResult.ALREADY_FOUND) {
+            showError("Слово уже найдено");
         }
 
         updateIndicators();
@@ -244,23 +249,24 @@ public final class GamePanel extends JPanel {
     private void useHint() {
         if (session == null || session.isFinished()) return;
         HintResult hint = session.useHint();
-        switch (hint.status()) {
-            case GIVEN -> {
-                Placement placement = hint.placement();
-                gridPanel.addHintCell(new GridPanel.Cell(
-                        placement.startRow(), placement.startCol()));
-                statusLabel.setForeground(Theme.GREEN);
-                statusLabel.setText("Подсказка " + hint.used() + " из " + hint.limit()
-                        + ": слово из " + placement.word().length()
-                        + " букв, первая «" + placement.word().charAt(0)
-                        + "» подсвечена зелёным, направление — "
-                        + placement.direction().description()
-                        + ". Минус 30 секунд.");
-                playSound(SoundPlayer::hint);
-            }
-            case DISABLED -> showError("В этом режиме подсказки отключены");
-            case LIMIT_REACHED -> showError("Подсказки закончились");
-            case NO_CANDIDATES -> showError("Все доступные подсказки уже открыты");
+        if (hint.status() == HintStatus.GIVEN) {
+            Placement placement = hint.placement();
+            gridPanel.addHintCell(new GridPanel.Cell(
+                    placement.startRow(), placement.startCol()));
+            statusLabel.setForeground(Theme.GREEN);
+            statusLabel.setText("Подсказка " + hint.used() + " из " + hint.limit()
+                    + ": слово из " + placement.word().length()
+                    + " букв, первая «" + placement.word().charAt(0)
+                    + "» подсвечена зелёным, направление — "
+                    + placement.direction().description()
+                    + ". Минус 30 секунд.");
+            playSound(SoundPlayer::hint);
+        } else if (hint.status() == HintStatus.DISABLED) {
+            showError("В этом режиме подсказки отключены");
+        } else if (hint.status() == HintStatus.LIMIT_REACHED) {
+            showError("Подсказки закончились");
+        } else if (hint.status() == HintStatus.NO_CANDIDATES) {
+            showError("Все доступные подсказки уже открыты");
         }
         updateIndicators();
     }
@@ -355,6 +361,6 @@ public final class GamePanel extends JPanel {
     }
 
     public static String formatDuration(Duration duration) {
-        return GameTimer.format(duration.toSeconds());
+        return GameTimer.format(duration.getSeconds());
     }
 }

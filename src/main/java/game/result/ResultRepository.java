@@ -1,5 +1,7 @@
 package game.result;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -7,9 +9,11 @@ import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -27,12 +31,13 @@ public final class ResultRepository {
     public ResultRepository(Path file) {
         this.file = file.toAbsolutePath();
         this.mapper = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
     }
 
     public static ResultRepository defaultRepository() {
         String home = System.getProperty("user.home", ".");
-        return new ResultRepository(Path.of(home, ".zaeso-words", FILE_NAME));
+        return new ResultRepository(Paths.get(home, ".zaeso-words", FILE_NAME));
     }
 
     public synchronized void save(GameResult result) throws IOException {
@@ -59,11 +64,11 @@ public final class ResultRepository {
      * затем более ранняя игра. Записи без счёта считаются худшими.
      */
     public List<GameResult> top(int height, int width, String difficulty, int limit) {
-        if (limit <= 0) return List.of();
+        if (limit <= 0) return Collections.emptyList();
 
-        return history(height, width, difficulty).stream()
-                .limit(limit)
-                .toList();
+        List<GameResult> matched = history(height, width, difficulty);
+        return Collections.unmodifiableList(
+                matched.subList(0, Math.min(limit, matched.size())));
     }
 
     /**
@@ -71,16 +76,20 @@ public final class ResultRepository {
      * В отличие от {@link #top} ничего не отбрасывает.
      */
     public List<GameResult> history(int height, int width, String difficulty) {
-        return load().stream()
-                .filter(result -> result.height() == height && result.width() == width)
-                .filter(result -> Objects.equals(result.difficulty(), difficulty))
-                .sorted(Comparator
-                        .comparingInt(GameResult::totalScore).reversed()
-                        .thenComparing(Comparator
-                                .comparingInt(GameResult::foundWords).reversed())
-                        .thenComparingLong(GameResult::elapsedSeconds)
-                        .thenComparingLong(GameResult::finishedAtEpochSeconds))
-                .toList();
+        List<GameResult> matched = new ArrayList<>();
+        for (GameResult result : load()) {
+            if (result.height() == height && result.width() == width
+                    && Objects.equals(result.difficulty(), difficulty)) {
+                matched.add(result);
+            }
+        }
+        Collections.sort(matched, Comparator
+                .comparingInt(GameResult::totalScore).reversed()
+                .thenComparing(Comparator
+                        .comparingInt(GameResult::foundWords).reversed())
+                .thenComparingLong(GameResult::elapsedSeconds)
+                .thenComparingLong(GameResult::finishedAtEpochSeconds));
+        return matched;
     }
 
     public Path getFile() {

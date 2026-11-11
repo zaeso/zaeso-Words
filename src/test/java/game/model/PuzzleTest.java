@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -13,12 +14,12 @@ class PuzzleTest {
     void returnsWordsInPlacementOrder() {
         char[][] grid = {{'К', 'О', 'Т'}};
         Direction direction = new Direction(0, 1);
-        Puzzle puzzle = new Puzzle(grid, List.of(
+        Puzzle puzzle = new Puzzle(grid, Arrays.asList(
                 new Placement("КОТ", 0, 0, direction),
                 new Placement("ОКО", 0, 0, direction)
         ));
 
-        assertEquals(List.of("КОТ", "ОКО"), puzzle.getWords());
+        assertEquals(Arrays.asList("КОТ", "ОКО"), puzzle.getWords());
     }
 
     @Test

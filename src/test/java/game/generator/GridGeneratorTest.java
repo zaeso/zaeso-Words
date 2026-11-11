@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GridGeneratorTest {
     private static final List<String> WORDS =
-            List.of("КОТ", "ДОМ", "СЛОН", "ТИГР", "ЛУНА", "ЗИМА", "ВЕСНА");
+            Arrays.asList("КОТ", "ДОМ", "СЛОН", "ТИГР", "ЛУНА", "ЗИМА", "ВЕСНА");
 
-    private static final List<String> LARGE_WORDS = List.of(
+    private static final List<String> LARGE_WORDS = Arrays.asList(
             "АЛГОРИТМ", "ПРОГРАММА", "КОМПЬЮТЕР", "ИНТЕРНЕТ", "МОНИТОР",
             "КЛАВИАТУРА", "ПРОЦЕССОР", "ПЕРЕМЕННАЯ", "МАССИВ", "ЦИКЛ",
             "МЕТОД", "КЛАСС", "ОБЪЕКТ", "СТРОКА", "ФУНКЦИЯ",
@@ -34,7 +34,7 @@ class GridGeneratorTest {
     void returnsNullWhenNotEnoughWords() {
         GridGenerator generator = new GridGenerator(1L);
 
-        Puzzle puzzle = generator.generate(10, 10, List.of("КОТ"), 2);
+        Puzzle puzzle = generator.generate(10, 10, Arrays.asList("КОТ"), 2);
 
         assertNull(puzzle);
     }
@@ -43,7 +43,7 @@ class GridGeneratorTest {
     void returnsNullWhenThereIsNotEnoughSpace() {
         GridGenerator generator = new GridGenerator(2L);
 
-        Puzzle puzzle = generator.generate(1, 1, List.of("А", "Б"), 2);
+        Puzzle puzzle = generator.generate(1, 1, Arrays.asList("А", "Б"), 2);
 
         assertNull(puzzle);
     }
@@ -52,7 +52,7 @@ class GridGeneratorTest {
     void ignoresWordsLongerThanGrid() {
         GridGenerator generator = new GridGenerator(3L);
 
-        Puzzle puzzle = generator.generate(5, 5, List.of("СЛИШКОМДЛИННОЕ"), 1);
+        Puzzle puzzle = generator.generate(5, 5, Arrays.asList("СЛИШКОМДЛИННОЕ"), 1);
 
         assertNull(puzzle);
     }
@@ -61,10 +61,10 @@ class GridGeneratorTest {
     void normalizesAndDeduplicatesWords() {
         GridGenerator generator = new GridGenerator(4L);
 
-        Puzzle puzzle = generator.generate(10, 10, List.of("кот", "КОТ", " к-о-т! "), 1);
+        Puzzle puzzle = generator.generate(10, 10, Arrays.asList("кот", "КОТ", " к-о-т! "), 1);
 
         assertNotNull(puzzle);
-        assertEquals(List.of("КОТ"), puzzle.getWords());
+        assertEquals(Arrays.asList("КОТ"), puzzle.getWords());
     }
 
     @Test

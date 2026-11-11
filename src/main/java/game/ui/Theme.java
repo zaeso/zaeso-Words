@@ -5,14 +5,18 @@ import game.config.ThemeChoice;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.SwingConstants;
 import javax.swing.border.Border;
+import javax.swing.event.MouseInputAdapter;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.event.MouseEvent;
 
 /**
  * Единая палитра и оформление интерфейса. Цвета меняются через
  * {@link #apply(ThemeChoice)}; выбранная тема хранится в настройках.
+ * Кнопки подсвечиваются при наведении и мягко «проваливаются» при нажатии.
  */
 public final class Theme {
     public static Color RED = new Color(0xC62828);
@@ -45,8 +49,9 @@ public final class Theme {
 
     /** Применяет цветовую схему к компонентам, созданным после вызова. */
     public static void apply(ThemeChoice choice) {
-        switch (choice == null ? ThemeChoice.CLASSIC : choice) {
-            case OCEAN -> {
+        ThemeChoice theme = choice == null ? ThemeChoice.CLASSIC : choice;
+        switch (theme) {
+            case OCEAN:
                 RED = new Color(0x0E7490);
                 RED_DARK = new Color(0x155E75);
                 BLUE = new Color(0x1D4ED8);
@@ -60,8 +65,8 @@ public final class Theme {
                 SUBTITLE = new Color(0xD5F3FA);
                 BORDER = new Color(0xC9E4EC);
                 CELL = Color.WHITE;
-            }
-            case FOREST -> {
+                break;
+            case FOREST:
                 RED = new Color(0x2F6B3A);
                 RED_DARK = new Color(0x1B4523);
                 BLUE = new Color(0x8B5E34);
@@ -75,8 +80,8 @@ public final class Theme {
                 SUBTITLE = new Color(0xE2F0D9);
                 BORDER = new Color(0xD6E2CB);
                 CELL = Color.WHITE;
-            }
-            case DARK -> {
+                break;
+            case DARK:
                 RED = new Color(0x7F1D1D);
                 RED_DARK = new Color(0x4C0F0F);
                 BLUE = new Color(0x2563EB);
@@ -90,8 +95,8 @@ public final class Theme {
                 SUBTITLE = new Color(0xE7C9C9);
                 BORDER = new Color(0x2E3A4C);
                 CELL = new Color(0xE8EDF5);
-            }
-            default -> {
+                break;
+            default:
                 RED = new Color(0xC62828);
                 RED_DARK = new Color(0x8E1B1B);
                 BLUE = new Color(0x1565C0);
@@ -105,21 +110,83 @@ public final class Theme {
                 SUBTITLE = new Color(0xFFE0E0);
                 BORDER = new Color(0xD8E1EC);
                 CELL = Color.WHITE;
-            }
+                break;
         }
     }
 
+    /** Окрашенная кнопка с закруглёнными краями и реакцией на наведение. */
     public static JButton button(String text, Color background) {
-        JButton button = new JButton(text);
+        final JButton button = new JButton(text);
         button.setFont(BUTTON);
         button.setForeground(Color.WHITE);
         button.setBackground(background);
         button.setOpaque(true);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        button.setHorizontalAlignment(SwingConstants.CENTER);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createEmptyBorder(12, 22, 12, 22));
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(background, 1, true),
+                BorderFactory.createEmptyBorder(12, 26, 12, 26)));
+
+        final Color base = background;
+        MouseInputAdapter hover = new MouseInputAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent event) {
+                if (button.isEnabled()) {
+                    button.setBackground(brighter(base));
+                    button.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(brighter(base), 1, true),
+                            BorderFactory.createEmptyBorder(12, 26, 12, 26)));
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent event) {
+                button.setBackground(base);
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(base, 1, true),
+                        BorderFactory.createEmptyBorder(12, 26, 12, 26)));
+            }
+
+            @Override
+            public void mousePressed(MouseEvent event) {
+                if (button.isEnabled()) {
+                    button.setBackground(darker(base));
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                button.setBackground(button.contains(event.getPoint())
+                        ? brighter(base) : base);
+            }
+        };
+        button.addMouseListener(hover);
+        button.addPropertyChangeListener("enabled", event -> {
+            if (!button.isEnabled()) {
+                button.setBackground(darker(base));
+            } else {
+                button.setBackground(base);
+            }
+        });
         return button;
+    }
+
+    private static Color brighter(Color color) {
+        return mix(color, Color.WHITE, 0.18);
+    }
+
+    private static Color darker(Color color) {
+        return mix(color, Color.BLACK, 0.18);
+    }
+
+    private static Color mix(Color color, Color other, double ratio) {
+        return new Color(
+                (int) Math.round(color.getRed() + (other.getRed() - color.getRed()) * ratio),
+                (int) Math.round(color.getGreen() + (other.getGreen() - color.getGreen()) * ratio),
+                (int) Math.round(color.getBlue() + (other.getBlue() - color.getBlue()) * ratio));
     }
 
     public static Border cardBorder() {

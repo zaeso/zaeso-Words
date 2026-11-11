@@ -10,6 +10,7 @@ import game.score.ScoreCalculator;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -126,10 +127,9 @@ public final class GameSession {
                 .filter(placement -> !hintedWords.contains(placement.word()))
                 .max(Comparator.comparingInt(placement -> placement.word().length()));
 
-        if (candidate.isEmpty()) {
+        if (!candidate.isPresent()) {
             return new HintResult(HintStatus.NO_CANDIDATES, null, hintsUsed, config.hints());
         }
-
         Placement placement = candidate.get();
         hintedWords.add(placement.word());
         hintsUsed++;
@@ -216,11 +216,17 @@ public final class GameSession {
     }
 
     public List<String> allWords() {
-        return List.copyOf(allWords);
+        return Collections.unmodifiableList(new ArrayList<>(allWords));
     }
 
     public List<String> remainingWords() {
-        return allWords.stream().filter(word -> !found.contains(word)).toList();
+        List<String> remaining = new ArrayList<>();
+        for (String word : allWords) {
+            if (!found.contains(word)) {
+                remaining.add(word);
+            }
+        }
+        return Collections.unmodifiableList(remaining);
     }
 
     public boolean isFound(String word) {
@@ -286,9 +292,63 @@ public final class GameSession {
         NO_CANDIDATES
     }
 
-    public record HintResult(HintStatus status, Placement placement, int used, int limit) {
+    public static final class HintResult {
+        private final HintStatus status;
+        private final Placement placement;
+        private final int used;
+        private final int limit;
+
+        public HintResult(HintStatus status, Placement placement, int used, int limit) {
+            this.status = status;
+            this.placement = placement;
+            this.used = used;
+            this.limit = limit;
+        }
+
+        public HintStatus status() {
+            return status;
+        }
+
+        public Placement placement() {
+            return placement;
+        }
+
+        public int used() {
+            return used;
+        }
+
+        public int limit() {
+            return limit;
+        }
+
         public boolean given() {
             return status == HintStatus.GIVEN;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof HintResult)) return false;
+            HintResult result = (HintResult) other;
+            return used == result.used
+                    && limit == result.limit
+                    && status == result.status
+                    && Objects.equals(placement, result.placement);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = status.hashCode();
+            result = 31 * result + (placement == null ? 0 : placement.hashCode());
+            result = 31 * result + used;
+            result = 31 * result + limit;
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "HintResult[status=" + status + ", placement=" + placement
+                    + ", used=" + used + ", limit=" + limit + "]";
         }
     }
 }

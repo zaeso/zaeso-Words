@@ -22,6 +22,23 @@ jobs:
       - name: Получение кода
         uses: actions/checkout@v5
 
+      - name: Установка JDK 8
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      - name: Запуск тестов и сборка JAR (Java 8)
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Сохранение JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: zaeso-words-jar
+          path: target/zaeso-words-*.jar
+          if-no-files-found: error
+
       - name: Установка JDK 17
         uses: actions/setup-java@v5
         with:
@@ -29,7 +46,7 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Запуск тестов и сборка JAR
+      - name: Запуск тестов и сборка JAR (Java 17)
         run: mvn --batch-mode --no-transfer-progress verify
 
       - name: Сохранение JAR
@@ -72,13 +89,13 @@ jobs:
             ## Запуск
 
             1. Скачайте JAR и `run-game.bat` из раздела Assets и положите их в одну папку.
-            2. Установите Java 17 или новее (достаточно JRE).
+            2. Установите Java 8 или новее (достаточно JRE).
             3. Дважды кликните `run-game.bat`.
 
             Либо запустите вручную из папки с JAR:
 
             ```bash
-            java -jar zaeso-words-1.0.5.jar
+            java -jar zaeso-words-1.1.0.jar
             ```
 
             Maven не нужен. Для отладочного консольного режима добавьте `--console`.

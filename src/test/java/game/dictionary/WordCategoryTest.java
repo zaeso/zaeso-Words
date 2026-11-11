@@ -43,7 +43,7 @@ class WordCategoryTest {
         WordCategory all = WordCategory.all().stream()
                 .filter(WordCategory::streamed)
                 .findFirst()
-                .orElseThrow();
+                .get();
 
         List<String> first = all.sampleWords(12, 30, new Random(1L));
         List<String> second = all.sampleWords(12, 30, new Random(2L));
@@ -62,11 +62,12 @@ class WordCategoryTest {
         WordCategory all = WordCategory.all().stream()
                 .filter(WordCategory::streamed)
                 .findFirst()
-                .orElseThrow();
+                .get();
 
         List<String> pool = all.sampleWords(12, 48, new Random(7L));
-        var result = new game.generator.GridGenerator(7L)
-                .generateChecked(10, 12, pool, 12);
+        game.generator.GridGenerator.GenerationResult result =
+                new game.generator.GridGenerator(7L)
+                        .generateChecked(10, 12, pool, 12);
 
         assertTrue(result.ok(), result::error);
         assertTrue(result.puzzle().getPlacements().size() >= 12);

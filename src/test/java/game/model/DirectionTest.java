@@ -21,7 +21,7 @@ class DirectionTest {
 
         assertEquals(8, Direction.ALL.length);
         assertEquals(8, directions.size());
-        assertTrue(directions.containsAll(List.of(
+        assertTrue(directions.containsAll(Arrays.asList(
                 "0:1", "0:-1", "1:0", "-1:0",
                 "1:1", "1:-1", "-1:1", "-1:-1"
         )));

@@ -45,13 +45,13 @@ final class RussianWords {
 
     static List<String> sample(int maxLength, int count, Random random) {
         if (count <= 0) {
-            return List.of();
+            return Collections.emptyList();
         }
         int limit = Math.min(maxLength, MAX_GAME_WORD_LENGTH);
         Map<Integer, List<String>> byLength =
                 POOLS.computeIfAbsent(limit, RussianWords::buildPools);
         if (byLength.isEmpty()) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         int totalWeight = byLength.keySet().stream()
@@ -79,7 +79,7 @@ final class RussianWords {
 
         List<String> result = new ArrayList<>(picked);
         Collections.shuffle(result, random);
-        return List.copyOf(result);
+        return Collections.unmodifiableList(result);
     }
 
     static long count(int maxLength) {
@@ -133,7 +133,8 @@ final class RussianWords {
         Map<Integer, List<String>> pools = new LinkedHashMap<>();
         reservoirs.forEach((length, reservoir) -> {
             reservoir.shuffle(random);
-            pools.put(length, List.copyOf(reservoir.words));
+            pools.put(length, Collections.unmodifiableList(
+                    new ArrayList<>(reservoir.words)));
         });
         return Collections.unmodifiableMap(pools);
     }

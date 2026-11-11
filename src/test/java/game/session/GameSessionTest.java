@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -103,7 +104,7 @@ class GameSessionTest {
     private static GameSession session(int hints) {
         Puzzle puzzle = new Puzzle(
                 new char[][]{{'К', 'О', 'Т'}, {'Д', 'О', 'М'}},
-                List.of(
+                Arrays.asList(
                         new Placement("КОТ", 0, 0, new Direction(0, 1)),
                         new Placement("ДОМ", 1, 0, new Direction(0, 1))
                 )

@@ -2,33 +2,33 @@
 
 [![CI](https://github.com/zaeso/zaeso-Words/actions/workflows/ci.yml/badge.svg)](https://github.com/zaeso/zaeso-Words/actions/workflows/ci.yml)
 
-Десктопная игра-головоломка на Java 17+ с графическим интерфейсом Swing и отладочным консольным режимом. Проект разделён на пакеты `model`, `generator`, `config`, `session`, `play`, `score`, `result`, `dictionary`, `daily` и `ui`.
+Десктопная игра-головоломка на Java 8+ с графическим интерфейсом Swing и отладочным консольным режимом. Проект разделён на пакеты `model`, `generator`, `config`, `session`, `play`, `score`, `result`, `dictionary`, `daily` и `ui`.
 
 ## Запуск готового JAR
 
-Скачайте `zaeso-words-1.0.5.jar` и `run-game.bat` из [последнего релиза](https://github.com/zaeso/zaeso-Words/releases/latest) в одну папку. Требуется только Java 17+ (достаточно JRE), Maven не нужен.
+Скачайте `zaeso-words-1.1.0.jar` и `run-game.bat` из [последнего релиза](https://github.com/zaeso/zaeso-Words/releases/latest) в одну папку. Требуется только Java 8+ (достаточно JRE), Maven не нужен.
 
 Запуск двойным кликом по `run-game.bat` или вручную:
 
 ```bash
-java -jar zaeso-words-1.0.5.jar
+java -jar zaeso-words-1.1.0.jar
 ```
 
 Без аргументов открывается графический интерфейс. Для отладочного консольного режима добавьте флаг:
 
 ```bash
-java -jar zaeso-words-1.0.5.jar --console
+java -jar zaeso-words-1.1.0.jar --console
 ```
 
 JAR уже содержит все зависимости, поэтому запуск не требует отдельной настройки classpath.
 
 ## Сборка из исходников
 
-Требуется JDK 17+ и Maven. Из корневой папки проекта:
+Требуется JDK 8+ и Maven. Из корневой папки проекта:
 
 ```bash
 mvn package
-java -jar target/zaeso-words-1.0.5.jar
+java -jar target/zaeso-words-1.1.0.jar
 ```
 
 `mvn verify` дополнительно запускает все тесты и создаёт исполняемый JAR.

@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -36,8 +37,9 @@ class ResultCsvExporterTest {
         GameResult result = new GameResult(1_700_000_000L, "Обычный", 10, 12,
                 8, 10, 125, 2, new Score(500, 20, 5, 10), "все слова найдены");
 
-        String csv = ResultCsvExporter.toCsv(List.of(result));
-        List<String> lines = csv.lines().toList();
+        String csv = ResultCsvExporter.toCsv(Collections.singletonList(result));
+        List<String> lines = Arrays.asList(csv.split("\r\n", -1));
+        lines = lines.subList(0, lines.size() - (csv.endsWith("\r\n") ? 1 : 0));
 
         assertEquals(2, lines.size());
         assertEquals(ResultCsvExporter.HEADER, lines.get(0).substring(1));
@@ -60,7 +62,7 @@ class ResultCsvExporterTest {
         GameResult result = new GameResult(1L, "Обычный", 10, 10,
                 1, 1, 1, 0, new Score(10, 0, 0, 0), "причина; с \"кавычками\"");
 
-        String csv = ResultCsvExporter.toCsv(List.of(result));
+        String csv = ResultCsvExporter.toCsv(Collections.singletonList(result));
 
         assertTrue(csv.contains("\"причина; с \"\"кавычками\"\"\""),
                 () -> "Поле с разделителем и кавычками должно быть экранировано:\n" + csv);
@@ -72,12 +74,12 @@ class ResultCsvExporterTest {
         GameResult result = new GameResult(1L, "Обычный", 10, 10,
                 1, 1, 1, 0, new Score(10, 0, 0, 0), "все слова найдены");
 
-        ResultCsvExporter.write(file, List.of(result));
+        ResultCsvExporter.write(file, Collections.singletonList(result));
 
         byte[] bytes = Files.readAllBytes(file);
         assertArrayEquals(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF},
                 Arrays.copyOf(bytes, 3));
-        String text = Files.readString(file, StandardCharsets.UTF_8);
+        String text = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
         assertTrue(text.contains("Обычный"));
     }
 }

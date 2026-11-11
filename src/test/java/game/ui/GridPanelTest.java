@@ -3,6 +3,7 @@ package game.ui;
 import org.junit.jupiter.api.Test;
 
 import java.awt.Color;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,7 +21,11 @@ class GridPanelTest {
         Color green = new Color(0x2E7D32);
         Color blue = new Color(0x1565C0);
 
-        panel.setFoundCells(Map.of(first, green, second, blue));
+        Map<GridPanel.Cell, Color> cells = new HashMap<>();
+        cells.put(first, green);
+        cells.put(second, blue);
+
+        panel.setFoundCells(cells);
 
         assertEquals(green, panel.foundColorOf(first));
         assertEquals(blue, panel.foundColorOf(second));

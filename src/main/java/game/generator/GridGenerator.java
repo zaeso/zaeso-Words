@@ -5,6 +5,7 @@ import game.model.Placement;
 import game.model.Puzzle;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GridGenerator {
     private static final int ATTEMPTS_PER_WORD = 300;
@@ -45,15 +46,15 @@ public class GridGenerator {
     public GenerationResult generateChecked(int height, int width,
                                             List<String> sourceWords, int minWords) {
         int maxLength = Math.max(height, width);
-        List<String> source = sourceWords == null ? List.of() : sourceWords;
+        List<String> source = sourceWords == null ? Collections.<String>emptyList() : sourceWords;
         List<String> words = source.stream()
                 .filter(Objects::nonNull)
                 .map(s -> s.toUpperCase(Locale.ROOT).replaceAll("[^А-ЯЁ]", ""))
-                .filter(s -> !s.isBlank())
+                .filter(s -> !s.trim().isEmpty())
                 .distinct()
                 .filter(s -> s.length() <= maxLength)
                 .sorted(Comparator.comparingInt(String::length).reversed())
-                .toList();
+                .collect(Collectors.toList());
 
         if (words.size() < minWords) {
             return GenerationResult.failure(insufficientWordsMessage(
@@ -121,7 +122,15 @@ public class GridGenerator {
                 + " из " + total + " (максимальная длина слова — " + maxLength + ").";
     }
 
-    public record GenerationResult(Puzzle puzzle, String error) {
+    public static final class GenerationResult {
+        private final Puzzle puzzle;
+        private final String error;
+
+        public GenerationResult(Puzzle puzzle, String error) {
+            this.puzzle = puzzle;
+            this.error = error;
+        }
+
         public static GenerationResult success(Puzzle puzzle) {
             return new GenerationResult(Objects.requireNonNull(puzzle), null);
         }
@@ -130,8 +139,35 @@ public class GridGenerator {
             return new GenerationResult(null, Objects.requireNonNull(error));
         }
 
+        public Puzzle puzzle() {
+            return puzzle;
+        }
+
+        public String error() {
+            return error;
+        }
+
         public boolean ok() {
             return puzzle != null;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof GenerationResult)) return false;
+            GenerationResult result = (GenerationResult) other;
+            return Objects.equals(puzzle, result.puzzle)
+                    && Objects.equals(error, result.error);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(puzzle, error);
+        }
+
+        @Override
+        public String toString() {
+            return "GenerationResult[puzzle=" + puzzle + ", error=" + error + "]";
         }
     }
 

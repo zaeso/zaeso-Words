@@ -5,6 +5,8 @@ import game.result.GameResult;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -13,16 +15,37 @@ import java.util.stream.Collectors;
 /**
  * Личная статистика по ежедневным головоломкам. Считается из уже сохранённых
  * результатов, поэтому отдельное хранилище не нужно.
- *
- * @param bestScore     лучший счёт за ежедневную игру
- * @param currentStreak сколько дней подряд игрок проходит сетку дня
- * @param daysPlayed    сколько разных дней с ежедневными играми
- * @param wordsFound    сколько слов найдено во всех ежедневных играх
  */
-public record DailyStatistics(int bestScore, int currentStreak,
-                              int daysPlayed, int wordsFound) {
-
+public final class DailyStatistics {
     public static final DailyStatistics EMPTY = new DailyStatistics(0, 0, 0, 0);
+
+    private final int bestScore;
+    private final int currentStreak;
+    private final int daysPlayed;
+    private final int wordsFound;
+
+    public DailyStatistics(int bestScore, int currentStreak, int daysPlayed, int wordsFound) {
+        this.bestScore = bestScore;
+        this.currentStreak = currentStreak;
+        this.daysPlayed = daysPlayed;
+        this.wordsFound = wordsFound;
+    }
+
+    public int bestScore() {
+        return bestScore;
+    }
+
+    public int currentStreak() {
+        return currentStreak;
+    }
+
+    public int daysPlayed() {
+        return daysPlayed;
+    }
+
+    public int wordsFound() {
+        return wordsFound;
+    }
 
     /** Считает статистику по текущей дате и часовому поясу системы. */
     public static DailyStatistics from(List<GameResult> results) {
@@ -42,7 +65,7 @@ public record DailyStatistics(int bestScore, int currentStreak,
         List<GameResult> daily = results.stream()
                 .filter(Objects::nonNull)
                 .filter(result -> DailyPuzzle.RESULT_LABEL.equals(result.difficulty()))
-                .toList();
+                .collect(Collectors.toList());
         if (daily.isEmpty()) {
             return EMPTY;
         }
@@ -79,5 +102,31 @@ public record DailyStatistics(int bestScore, int currentStreak,
             cursor = cursor.minusDays(1);
         }
         return streak;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (!(other instanceof DailyStatistics)) return false;
+        DailyStatistics statistics = (DailyStatistics) other;
+        return bestScore == statistics.bestScore
+                && currentStreak == statistics.currentStreak
+                && daysPlayed == statistics.daysPlayed
+                && wordsFound == statistics.wordsFound;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = bestScore;
+        result = 31 * result + currentStreak;
+        result = 31 * result + daysPlayed;
+        result = 31 * result + wordsFound;
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "DailyStatistics[bestScore=" + bestScore + ", currentStreak=" + currentStreak
+                + ", daysPlayed=" + daysPlayed + ", wordsFound=" + wordsFound + "]";
     }
 }

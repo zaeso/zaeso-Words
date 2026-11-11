@@ -15,15 +15,16 @@ if not defined JAR (
 set "VER="
 for /f "tokens=3" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do if not defined VER set "VER=%%~v"
 if not defined VER (
-    echo Java не найдена. Установите Java 17 или новее: https://adoptium.net/
+    echo Java не найдена. Установите Java 8 или новее: https://adoptium.net/
     pause
     exit /b 1
 )
 
 for /f "tokens=1 delims=." %%m in ("!VER!") do set "MAJOR=%%m"
-if !MAJOR! LSS 17 (
-    echo Найдена Java !VER!, а нужна Java 17 или новее.
-    echo Установите Temurin JRE 17+ с https://adoptium.net/
+if "!MAJOR!"=="1" for /f "tokens=2 delims=." %%m in ("!VER!") do set "MAJOR=%%m"
+if !MAJOR! LSS 8 (
+    echo Найдена Java !VER!, а нужна Java 8 или новее.
+    echo Установите Temurin JRE 8+ с https://adoptium.net/
     pause
     exit /b 1
 )

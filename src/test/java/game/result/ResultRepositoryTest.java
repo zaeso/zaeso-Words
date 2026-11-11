@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -100,19 +101,17 @@ class ResultRepositoryTest {
     @Test
     void loadsOldRecordsWithoutScore() throws IOException {
         Path file = tempDir.resolve("results.json");
-        Files.writeString(file, """
-                [{
-                  "finishedAtEpochSeconds": 1,
-                  "difficulty": "Обычный",
-                  "height": 10,
-                  "width": 10,
-                  "foundWords": 3,
-                  "totalWords": 5,
-                  "elapsedSeconds": 60,
-                  "hintsUsed": 1,
-                  "finishReason": "выход игрока"
-                }]
-                """, StandardCharsets.UTF_8);
+        writeUtf8(file, "[{\n"
+                + "  \"finishedAtEpochSeconds\": 1,\n"
+                + "  \"difficulty\": \"Обычный\",\n"
+                + "  \"height\": 10,\n"
+                + "  \"width\": 10,\n"
+                + "  \"foundWords\": 3,\n"
+                + "  \"totalWords\": 5,\n"
+                + "  \"elapsedSeconds\": 60,\n"
+                + "  \"hintsUsed\": 1,\n"
+                + "  \"finishReason\": \"выход игрока\"\n"
+                + "}]");
 
         GameResult result = new ResultRepository(file).load().get(0);
 
@@ -147,7 +146,7 @@ class ResultRepositoryTest {
     @Test
     void survivesCorruptFileAndBacksItUp() throws IOException {
         Path file = tempDir.resolve("results.json");
-        Files.writeString(file, "{ это не JSON", StandardCharsets.UTF_8);
+        Files.write(file, "{ это не JSON".getBytes(StandardCharsets.UTF_8));
         ResultRepository repository = new ResultRepository(file);
 
         assertTrue(repository.load().isEmpty());
@@ -166,23 +165,27 @@ class ResultRepositoryTest {
         Path file = tempDir.resolve("results.json");
         new ResultRepository(file).save(result(1, "Обычный", 10, 10, 1, 1, 5, 0));
 
-        String json = Files.readString(file, StandardCharsets.UTF_8);
+        String json = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
         assertTrue(json.contains("\"difficulty\""), json);
         assertTrue(json.contains("\"Обычный\""), json);
         assertTrue(json.contains("\"score\""), json);
-        assertFalse(json.isBlank(), "JSON не должен быть пустым");
+        assertFalse(json.trim().isEmpty(), "JSON не должен быть пустым");
     }
 
     @Test
     void defaultRepositoryUsesUserHome() {
         Path file = ResultRepository.defaultRepository().getFile();
 
-        assertTrue(file.endsWith(Path.of(".zaeso-words", "results.json")), file.toString());
+        assertTrue(file.endsWith(Paths.get(".zaeso-words", "results.json")), file.toString());
     }
 
     private static GameResult result(long finishedAt, String difficulty, int height, int width,
                                      int found, int total, long elapsed, int hints) {
         return new GameResult(finishedAt, difficulty, height, width, found, total, elapsed, hints,
                 "все слова найдены");
+    }
+
+    private static void writeUtf8(Path file, String content) throws IOException {
+        Files.write(file, content.getBytes(StandardCharsets.UTF_8));
     }
 }
