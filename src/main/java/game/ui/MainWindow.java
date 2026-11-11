@@ -110,8 +110,8 @@ public final class MainWindow extends JFrame {
     }
 
     private JPanel buildMenu() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Theme.RED);
+        GradientPanel panel = GradientPanel.header();
+        panel.setLayout(new GridBagLayout());
 
         JPanel content = new JPanel();
         content.setOpaque(false);
@@ -127,18 +127,12 @@ public final class MainWindow extends JFrame {
         subtitle.setForeground(Theme.SUBTITLE);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton play = Theme.button("Играть", Theme.GREEN);
-        JButton daily = Theme.button("Сетка дня", Theme.GREEN);
-        JButton statistics = Theme.button("Статистика", Theme.BLUE);
-        JButton settings = Theme.button("Настройки", Theme.BLUE);
-        JButton records = Theme.button("Рекорды", Theme.BLUE);
-        JButton exit = Theme.button("Выход", Theme.RED_DARK);
-
-        JButton[] buttons = {play, daily, statistics, settings, records, exit};
-        for (JButton button : buttons) {
-            button.setAlignmentX(Component.CENTER_ALIGNMENT);
-            button.setMaximumSize(new Dimension(280, 46));
-        }
+        FlatButton play = menuButton("Играть", Theme.GREEN);
+        FlatButton daily = menuButton("Сетка дня", Theme.GREEN);
+        FlatButton statistics = menuButton("Статистика", Theme.BLUE);
+        FlatButton settings = menuButton("Настройки", Theme.BLUE);
+        FlatButton records = menuButton("Рекорды", Theme.BLUE);
+        FlatButton exit = menuButton("Выход", Theme.RED_DARK);
 
         play.addActionListener(e -> startNewGame());
         daily.addActionListener(e -> startDailyGame());
@@ -150,7 +144,7 @@ public final class MainWindow extends JFrame {
         content.add(title);
         content.add(Box.createVerticalStrut(8));
         content.add(subtitle);
-        content.add(Box.createVerticalStrut(30));
+        content.add(Box.createVerticalStrut(34));
         content.add(play);
         content.add(Box.createVerticalStrut(12));
         content.add(daily);
@@ -165,6 +159,14 @@ public final class MainWindow extends JFrame {
 
         panel.add(content);
         return panel;
+    }
+
+    private FlatButton menuButton(String text, Color color) {
+        FlatButton button = new FlatButton(text, color);
+        button.large();
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setMaximumSize(new Dimension(300, 50));
+        return button;
     }
 
     private JPanel buildSettings() {
@@ -242,7 +244,7 @@ public final class MainWindow extends JFrame {
         card.add(Box.createVerticalStrut(14));
 
         settingsStatus = new JLabel(" ");
-        settingsStatus.setFont(Theme.SMALL);
+        settingsStatus.setFont(Theme.BODY);
         settingsStatus.setForeground(Theme.MUTED);
         settingsStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(settingsStatus);
@@ -258,8 +260,10 @@ public final class MainWindow extends JFrame {
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         actions.setOpaque(false);
-        JButton back = Theme.button("Назад", Theme.BLUE);
+        JButton save = Theme.button("Сохранить", Theme.BLUE);
         JButton play = Theme.button("Играть", Theme.GREEN);
+        JButton back = Theme.button("Назад", Theme.MUTED);
+        save.addActionListener(e -> applySettingsFromControls());
         back.addActionListener(e -> {
             if (applySettingsFromControls()) {
                 cards.show(root, MENU);
@@ -270,6 +274,7 @@ public final class MainWindow extends JFrame {
                 startNewGame();
             }
         });
+        actions.add(save);
         actions.add(play);
         actions.add(back);
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -346,7 +351,7 @@ public final class MainWindow extends JFrame {
         try {
             settingsStore.save(candidate);
             settingsStore.saveUi(uiSettings);
-            showSettingsStatus("Настройки сохранены.", Theme.GREEN);
+            showSettingsStatus("Настройки сохранены в ~/.zaeso-words/settings.properties.", Theme.GREEN);
         } catch (IOException e) {
             showSettingsStatus("Не удалось сохранить настройки: " + e.getMessage(), Theme.RED);
         }

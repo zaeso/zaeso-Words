@@ -156,8 +156,8 @@ public final class GamePanel extends JPanel {
     }
 
     private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(Theme.RED);
+        GradientPanel header = GradientPanel.header();
+        header.setLayout(new BorderLayout());
         header.setBorder(BorderFactory.createEmptyBorder(14, 20, 14, 20));
 
         roundLabel.setFont(Theme.HEADING);
@@ -194,7 +194,14 @@ public final class GamePanel extends JPanel {
         wordsPanel.setOpaque(false);
         JScrollPane scroll = new JScrollPane(wordsPanel);
         scroll.setPreferredSize(new Dimension(240, 0));
-        scroll.setBorder(BorderFactory.createTitledBorder("Слова"));
+        scroll.getViewport().setBackground(Theme.BACKGROUND);
+        scroll.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(Theme.BORDER),
+                "Слова",
+                javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                Theme.SMALL,
+                Theme.MUTED));
         center.add(scroll, BorderLayout.EAST);
         return center;
     }

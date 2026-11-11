@@ -6,18 +6,18 @@
 
 ## Запуск готового JAR
 
-Скачайте `zaeso-words-1.1.0.jar` и `run-game.bat` из [последнего релиза](https://github.com/zaeso/zaeso-Words/releases/latest) в одну папку. Требуется только Java 8+ (достаточно JRE), Maven не нужен.
+Скачайте `zaeso-words-1.1.1.jar` и `run-game.bat` из [последнего релиза](https://github.com/zaeso/zaeso-Words/releases/latest) в одну папку. Требуется только Java 8+ (достаточно JRE), Maven не нужен.
 
 Запуск двойным кликом по `run-game.bat` или вручную:
 
 ```bash
-java -jar zaeso-words-1.1.0.jar
+java -jar zaeso-words-1.1.1.jar
 ```
 
 Без аргументов открывается графический интерфейс. Для отладочного консольного режима добавьте флаг:
 
 ```bash
-java -jar zaeso-words-1.1.0.jar --console
+java -jar zaeso-words-1.1.1.jar --console
 ```
 
 JAR уже содержит все зависимости, поэтому запуск не требует отдельной настройки classpath.
@@ -28,7 +28,7 @@ JAR уже содержит все зависимости, поэтому зап
 
 ```bash
 mvn package
-java -jar target/zaeso-words-1.1.0.jar
+java -jar target/zaeso-words-1.1.1.jar
 ```
 
 `mvn verify` дополнительно запускает все тесты и создаёт исполняемый JAR.
