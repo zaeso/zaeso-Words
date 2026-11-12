@@ -137,6 +137,17 @@ public final class Theme {
         );
     }
 
+    /** Рамка карточки с мягкой «тенью» снизу-справа. */
+    public static Border shadowCardBorder() {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(
+                                0, 0, 3, 3, new Color(30, 36, 48, 36)),
+                        BorderFactory.createLineBorder(BORDER, 1, true)),
+                BorderFactory.createEmptyBorder(18, 18, 18, 18)
+        );
+    }
+
     public static void styleCard(JComponent component) {
         component.setBackground(PANEL);
         component.setBorder(cardBorder());

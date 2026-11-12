@@ -39,7 +39,10 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
+import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.io.File;
 import java.io.IOException;
@@ -110,7 +113,7 @@ public final class MainWindow extends JFrame {
     }
 
     private JPanel buildMenu() {
-        GradientPanel panel = GradientPanel.header();
+        GradientPanel panel = GradientPanel.menu();
         panel.setLayout(new GridBagLayout());
 
         JPanel content = new JPanel();
@@ -118,7 +121,7 @@ public final class MainWindow extends JFrame {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
         JLabel title = new JLabel("ZAESO WORDS");
-        title.setFont(Theme.TITLE);
+        title.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 40));
         title.setForeground(Color.WHITE);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -126,6 +129,11 @@ public final class MainWindow extends JFrame {
         subtitle.setFont(Theme.BODY);
         subtitle.setForeground(Theme.SUBTITLE);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel version = new JLabel("версия 1.1.3 · работает на Java 8+");
+        version.setFont(Theme.SMALL);
+        version.setForeground(new Color(255, 255, 255, 175));
+        version.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         FlatButton play = menuButton("Играть", Theme.GREEN);
         FlatButton daily = menuButton("Сетка дня", Theme.ORANGE);
@@ -143,8 +151,10 @@ public final class MainWindow extends JFrame {
 
         content.add(title);
         content.add(Box.createVerticalStrut(8));
+        content.add(accentBar());
+        content.add(Box.createVerticalStrut(10));
         content.add(subtitle);
-        content.add(Box.createVerticalStrut(34));
+        content.add(Box.createVerticalStrut(30));
         content.add(play);
         content.add(Box.createVerticalStrut(12));
         content.add(daily);
@@ -156,16 +166,41 @@ public final class MainWindow extends JFrame {
         content.add(records);
         content.add(Box.createVerticalStrut(12));
         content.add(exit);
+        content.add(Box.createVerticalStrut(26));
+        content.add(version);
 
         panel.add(content);
         return panel;
+    }
+
+    /** Светлая полоска-акцент под заголовком меню. */
+    private JComponent accentBar() {
+        JPanel bar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                try {
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.setColor(new Color(255, 255, 255, 150));
+                    g.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
+                } finally {
+                    g.dispose();
+                }
+            }
+        };
+        bar.setOpaque(false);
+        bar.setPreferredSize(new Dimension(150, 5));
+        bar.setMaximumSize(new Dimension(150, 5));
+        bar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return bar;
     }
 
     private FlatButton menuButton(String text, Color color) {
         FlatButton button = new FlatButton(text, color);
         button.large();
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
-        button.setMaximumSize(new Dimension(300, 50));
+        button.setMaximumSize(new Dimension(300, 52));
         return button;
     }
 
@@ -175,7 +210,7 @@ public final class MainWindow extends JFrame {
 
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Theme.PANEL);
-        card.setBorder(BorderFactory.createLineBorder(Theme.BORDER, 1, true));
+        card.setBorder(Theme.shadowCardBorder());
 
         GradientPanel header = new GradientPanel(Theme.BLUE, Theme.BLUE_DARK);
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
@@ -449,7 +484,7 @@ public final class MainWindow extends JFrame {
 
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Theme.PANEL);
-        card.setBorder(BorderFactory.createLineBorder(Theme.BORDER, 1, true));
+        card.setBorder(Theme.shadowCardBorder());
 
         GradientPanel header = new GradientPanel(Theme.RED, Theme.RED_DARK);
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
@@ -491,9 +526,20 @@ public final class MainWindow extends JFrame {
         finishTotal.setForeground(Theme.GREEN);
         finishTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        body.add(finishScore);
-        body.add(Box.createVerticalStrut(8));
-        body.add(finishBreakdown);
+        JPanel scoreTile = new JPanel();
+        scoreTile.setLayout(new BoxLayout(scoreTile, BoxLayout.Y_AXIS));
+        scoreTile.setOpaque(true);
+        scoreTile.setBackground(Theme.PANEL);
+        scoreTile.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.BLUE, 1, true),
+                BorderFactory.createEmptyBorder(16, 26, 16, 26)));
+        scoreTile.setMaximumSize(new Dimension(520, 220));
+        scoreTile.add(finishScore);
+        scoreTile.add(Box.createVerticalStrut(6));
+        scoreTile.add(finishBreakdown);
+        scoreTile.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        body.add(scoreTile);
         body.add(Box.createVerticalStrut(14));
         body.add(finishTotal);
         body.add(Box.createVerticalStrut(26));
@@ -616,11 +662,19 @@ public final class MainWindow extends JFrame {
     }
 
     private JPanel statTile(String caption, String value, Color color) {
-        JPanel tile = new JPanel(new BorderLayout(0, 4));
+        JPanel tile = new JPanel(new BorderLayout());
         tile.setBackground(Theme.PANEL);
         tile.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(color, 2, true),
-                BorderFactory.createEmptyBorder(14, 16, 14, 16)));
+                BorderFactory.createLineBorder(color, 1, true),
+                BorderFactory.createEmptyBorder()));
+
+        JPanel strip = new JPanel();
+        strip.setBackground(color);
+        strip.setPreferredSize(new Dimension(1, 6));
+
+        JPanel inner = new JPanel(new BorderLayout(0, 4));
+        inner.setOpaque(false);
+        inner.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
 
         JLabel valueLabel = new JLabel(value);
         valueLabel.setFont(Theme.TITLE);
@@ -630,8 +684,10 @@ public final class MainWindow extends JFrame {
         captionLabel.setFont(Theme.BODY);
         captionLabel.setForeground(Theme.MUTED);
 
-        tile.add(valueLabel, BorderLayout.NORTH);
-        tile.add(captionLabel, BorderLayout.SOUTH);
+        inner.add(valueLabel, BorderLayout.NORTH);
+        inner.add(captionLabel, BorderLayout.SOUTH);
+        tile.add(strip, BorderLayout.NORTH);
+        tile.add(inner, BorderLayout.CENTER);
         return tile;
     }
 
@@ -642,17 +698,23 @@ public final class MainWindow extends JFrame {
                 config.height(), config.width(), name);
 
         JDialog dialog = new JDialog(this, "Рекорды", true);
-        dialog.setLayout(new BorderLayout(0, 12));
+        dialog.setLayout(new BorderLayout());
         dialog.getContentPane().setBackground(Theme.BACKGROUND);
 
-        JLabel header = new JLabel("Полная таблица рекордов · "
-                + settings.difficulty().displayName()
+        GradientPanel header = new GradientPanel(Theme.BLUE, Theme.BLUE_DARK);
+        header.setLayout(new BorderLayout());
+        header.setBorder(BorderFactory.createEmptyBorder(14, 18, 14, 18));
+        JLabel headerTitle = new JLabel("Полная таблица рекордов");
+        headerTitle.setFont(Theme.HEADING);
+        headerTitle.setForeground(Color.WHITE);
+        JLabel headerDetails = new JLabel(settings.difficulty().displayName()
                 + " · " + settings.category().displayName()
                 + " · сетка " + config.height() + "×" + config.width()
                 + " · записей: " + history.size());
-        header.setFont(Theme.BODY);
-        header.setForeground(Theme.TEXT);
-        header.setBorder(BorderFactory.createEmptyBorder(16, 16, 0, 16));
+        headerDetails.setFont(Theme.SMALL);
+        headerDetails.setForeground(new Color(0xE3F2FD));
+        header.add(headerTitle, BorderLayout.WEST);
+        header.add(headerDetails, BorderLayout.EAST);
         dialog.add(header, BorderLayout.NORTH);
 
         DefaultTableModel model = new DefaultTableModel(

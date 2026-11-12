@@ -5,21 +5,21 @@ import javax.swing.SwingConstants;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GradientPaint;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 /**
- * Плоская закруглённая кнопка, которая полностью рисует себя сама: фон,
- * рамку и текст. Не зависит от установленного Look & Feel, поэтому кнопки
- * выглядят одинаково и всегда видны на любой Java и в любой теме.
+ * Плоская закруглённая кнопка, которая полностью рисует себя сама: градиент,
+ * тень, блик, рамку и текст. Не зависит от установленного Look & Feel,
+ * поэтому кнопки выглядят одинаково и всегда видны на любой Java.
  */
 public final class FlatButton extends JButton {
-    private static final int ARC = 14;
+    private static final int ARC = 16;
 
     private final Color base;
     private final Color border;
@@ -76,8 +76,8 @@ public final class FlatButton extends JButton {
 
     /** Крупная кнопка главного меню. */
     public void large() {
-        setFont(new Font("Segoe UI", Font.BOLD, 18));
-        setPreferredSize(new Dimension(300, 50));
+        setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        setPreferredSize(new Dimension(300, 52));
     }
 
     @Override
@@ -87,32 +87,52 @@ public final class FlatButton extends JButton {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     RenderingHints.VALUE_ANTIALIAS_ON);
 
-            Color fill = base;
+            int width = getWidth();
+            int height = getHeight();
+            boolean active = isEnabled();
+
+            Color fillTop = mix(base, Color.WHITE, 0.26);
+            Color fillBottom = base;
             Color edge = border;
-            if (!isEnabled()) {
-                fill = mix(base, Theme.MUTED, 0.45);
+
+            if (!active) {
+                fillTop = mix(base, Theme.MUTED, 0.42);
+                fillBottom = mix(base, Theme.MUTED, 0.55);
                 edge = mix(border, Theme.MUTED, 0.45);
             } else if (pressed) {
-                fill = base.darker().darker();
-                edge = fill;
+                fillTop = mix(base, Color.BLACK, 0.10);
+                fillBottom = base.darker();
+                edge = fillBottom.darker();
             } else if (hovered) {
-                fill = mix(base, Color.WHITE, 0.20);
-                edge = fill.darker();
+                fillTop = mix(base, Color.WHITE, 0.44);
+                fillBottom = mix(base, Color.WHITE, 0.10);
+                edge = fillBottom.darker();
             }
 
-            g.setColor(fill);
-            g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
-            g.setColor(edge);
-            g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+            if (active && !pressed) {
+                g.setColor(new Color(0, 0, 0, hovered ? 60 : 34));
+                g.fillRoundRect(2, 4, width - 4, height - 4, ARC, ARC);
+            }
 
-            Font font = getFont();
-            g.setFont(font);
-            FontMetrics metrics = g.getFontMetrics(font);
+            g.setPaint(new GradientPaint(0, 1, fillTop, 0, height - 1, fillBottom));
+            g.fillRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
+            g.setColor(edge);
+            g.drawRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
+
+            if (active) {
+                g.setColor(new Color(255, 255, 255, 70));
+                g.drawLine(ARC, 1, width - 1 - ARC, 1);
+            }
+
+            FontMetrics metrics = g.getFontMetrics();
             String text = getText();
-            int textX = (getWidth() - metrics.stringWidth(text)) / 2;
-            int textY = (getHeight() - metrics.getHeight()) / 2
-                    + metrics.getAscent();
-            g.setColor(isEnabled() ? getForeground() : mix(getForeground(), Theme.MUTED, 0.4));
+            int textX = (width - metrics.stringWidth(text)) / 2;
+            int textY = (height - metrics.getHeight()) / 2 + metrics.getAscent();
+            if (active) {
+                g.setColor(new Color(0, 0, 0, 60));
+                g.drawString(text, textX, textY + 1);
+            }
+            g.setColor(active ? getForeground() : mix(getForeground(), Theme.MUTED, 0.4));
             g.drawString(text, textX, textY);
         } finally {
             g.dispose();
