@@ -252,10 +252,15 @@ public final class GridPanel extends JPanel {
                     int textX = x + (metrics.cell - fontMetrics.stringWidth(text)) / 2;
                     int textY = y + (metrics.cell - fontMetrics.getHeight()) / 2
                             + fontMetrics.getAscent();
-                    g.setColor(foundCells.containsKey(cell) || selection.contains(cell)
-                            ? Color.WHITE : Theme.CELL_TEXT);
                     if (hintCells.contains(cell) && !foundCells.containsKey(cell)) {
                         g.setColor(HINT_GREEN_BORDER);
+                    } else if (foundCells.containsKey(cell)) {
+                        g.setColor(isDark(foundCells.get(cell))
+                                ? Color.WHITE : new Color(0x263238));
+                    } else if (selection.contains(cell)) {
+                        g.setColor(Color.WHITE);
+                    } else {
+                        g.setColor(Theme.CELL_TEXT);
                     }
                     g.drawString(text, textX, textY);
                 }
@@ -271,6 +276,13 @@ public final class GridPanel extends JPanel {
         long elapsed = System.currentTimeMillis() - animationStart;
         float progress = Math.min(1f, elapsed / (float) HIGHLIGHT_MILLIS);
         return blend(base, Theme.GREEN_LIGHT, 1f - progress);
+    }
+
+    private static boolean isDark(Color color) {
+        double luminance = (0.299 * color.getRed()
+                + 0.587 * color.getGreen()
+                + 0.114 * color.getBlue()) / 255.0;
+        return luminance < 0.55;
     }
 
     private static Color blend(Color from, Color to, float ratio) {

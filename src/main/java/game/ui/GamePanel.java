@@ -41,16 +41,37 @@ import java.util.Map;
 import java.util.Random;
 
 public final class GamePanel extends JPanel {
-    private static final Color[] WORD_COLORS = {
-            new Color(0x2E7D32),
-            new Color(0x1565C0),
+    /** Спокойная палитра для светлого фона сетки. */
+    private static final Color[] DEEP_WORD_COLORS = {
             new Color(0xC62828),
+            new Color(0x1565C0),
+            new Color(0x2E7D32),
             new Color(0x6A1B9A),
             new Color(0xE65100),
             new Color(0x00695C),
             new Color(0xAD1457),
             new Color(0x4527A0)
     };
+    /** Яркая палитра для тёмного фона сетки: не сливается с ним. */
+    private static final Color[] BRIGHT_WORD_COLORS = {
+            new Color(0xEF5350),
+            new Color(0x42A5F5),
+            new Color(0x66BB6A),
+            new Color(0xAB47BC),
+            new Color(0xFFA726),
+            new Color(0x26C6DA),
+            new Color(0xEC407A),
+            new Color(0x7E57C2)
+    };
+
+    /** Палитра найденных слов под яркость фона сетки. */
+    static Color[] paletteForBackground(Color background) {
+        double luminance = (0.299 * background.getRed()
+                + 0.587 * background.getGreen()
+                + 0.114 * background.getBlue()) / 255.0;
+        return luminance < 0.45 ? BRIGHT_WORD_COLORS : DEEP_WORD_COLORS;
+    }
+
     public interface Listener {
         void roundFinished(GameResult result, boolean timeExpired);
     }
@@ -72,6 +93,7 @@ public final class GamePanel extends JPanel {
     private GameSession session;
     private UiSettings uiSettings = UiSettings.defaults();
     private final Map<String, Color> wordColors = new HashMap<>();
+    private Color[] wordPalette = DEEP_WORD_COLORS;
     private int round;
     private int carriedScore;
 
@@ -131,6 +153,7 @@ public final class GamePanel extends JPanel {
         session = new GameSession(generation.puzzle(), config, label);
         session.start();
         wordColors.clear();
+        wordPalette = paletteForBackground(Theme.BLUE_DARK);
 
         roundLabel.setText(title != null
                 ? title
@@ -294,7 +317,7 @@ public final class GamePanel extends JPanel {
         Map<GridPanel.Cell, Color> cells = new HashMap<>();
         for (String word : session.foundWords()) {
             Color color = wordColors.computeIfAbsent(word,
-                    value -> WORD_COLORS[wordColors.size() % WORD_COLORS.length]);
+                    value -> wordPalette[wordColors.size() % wordPalette.length]);
             session.placementFor(word).ifPresent(placement -> {
                 int rowStep = placement.direction().rowStep();
                 int colStep = placement.direction().colStep();
@@ -309,15 +332,26 @@ public final class GamePanel extends JPanel {
         rebuildWordList();
     }
 
+    /** Цвет слова в списке: чуть темнее на светлой панели, чтобы не сливался. */
+    private Color listColor(String word) {
+        Color color = wordColors.get(word);
+        if (color == null) return Theme.GREEN;
+        return luminance(Theme.PANEL) < 0.45 ? color : color.darker();
+    }
+
+    private static double luminance(Color color) {
+        return (0.299 * color.getRed()
+                + 0.587 * color.getGreen()
+                + 0.114 * color.getBlue()) / 255.0;
+    }
+
     private void rebuildWordList() {
         wordsPanel.removeAll();
         for (String word : session.allWords()) {
             boolean found = session.isFound(word);
-            JLabel label = new JLabel((found ? "✓ " : "• ") + word);
+            JLabel label = new JLabel(found ? word : "• " + word);
             label.setFont(Theme.BODY);
-            label.setForeground(found
-                    ? wordColors.getOrDefault(word, Theme.GREEN)
-                    : Theme.TEXT);
+            label.setForeground(found ? listColor(word) : Theme.TEXT);
             wordsPanel.add(label);
         }
         wordsPanel.revalidate();

@@ -128,9 +128,9 @@ public final class MainWindow extends JFrame {
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         FlatButton play = menuButton("Играть", Theme.GREEN);
-        FlatButton daily = menuButton("Сетка дня", Theme.GREEN);
-        FlatButton statistics = menuButton("Статистика", Theme.BLUE);
-        FlatButton settings = menuButton("Настройки", Theme.BLUE);
+        FlatButton daily = menuButton("Сетка дня", Theme.ORANGE);
+        FlatButton statistics = menuButton("Статистика", Theme.TEAL);
+        FlatButton settings = menuButton("Настройки", Theme.PURPLE);
         FlatButton records = menuButton("Рекорды", Theme.BLUE);
         FlatButton exit = menuButton("Выход", Theme.RED_DARK);
 
@@ -173,31 +173,41 @@ public final class MainWindow extends JFrame {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(Theme.BACKGROUND);
 
-        JPanel card = new JPanel();
-        Theme.styleCard(card);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Theme.PANEL);
+        card.setBorder(BorderFactory.createLineBorder(Theme.BORDER, 1, true));
 
-        JLabel title = new JLabel("Параметры игры");
-        title.setFont(Theme.HEADING);
-        title.setForeground(Theme.RED);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(title);
-        card.add(Box.createVerticalStrut(6));
+        GradientPanel header = new GradientPanel(Theme.BLUE, Theme.BLUE_DARK);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBorder(BorderFactory.createEmptyBorder(14, 20, 14, 20));
 
-        JLabel note = new JLabel("Все параметры проверяются до генерации и сохраняются между запусками.");
-        note.setFont(Theme.BODY);
-        note.setForeground(Theme.MUTED);
-        note.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(note);
-        card.add(Box.createVerticalStrut(18));
+        JLabel headerTitle = new JLabel("Параметры игры");
+        headerTitle.setFont(Theme.HEADING);
+        headerTitle.setForeground(Color.WHITE);
+        headerTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel headerNote = new JLabel("Все параметры проверяются до генерации и сохраняются между запусками.");
+        headerNote.setFont(Theme.SMALL);
+        headerNote.setForeground(new Color(0xE3F2FD));
+        headerNote.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        header.add(headerTitle);
+        header.add(Box.createVerticalStrut(4));
+        header.add(headerNote);
+        card.add(header, BorderLayout.NORTH);
+
+        JPanel body = new JPanel();
+        Theme.styleBody(body);
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        card.add(body, BorderLayout.CENTER);
 
         difficultyBox = new JComboBox<>();
         for (Difficulty value : Difficulty.values()) {
             difficultyBox.addItem(value.displayName());
         }
         difficultyBox.setSelectedItem(settings.difficulty().displayName());
-        card.add(settingRow("Сложность", difficultyBox));
-        card.add(Box.createVerticalStrut(10));
+        body.add(settingRow("Сложность", difficultyBox));
+        body.add(Box.createVerticalStrut(10));
 
         categoryBox = new JComboBox<>();
         List<WordCategory> categories = WordCategory.all();
@@ -205,50 +215,50 @@ public final class MainWindow extends JFrame {
             categoryBox.addItem(value.displayName() + " — " + value.wordCountText());
         }
         categoryBox.setSelectedIndex(Math.max(0, categories.indexOf(settings.category())));
-        card.add(settingRow("Категория", categoryBox));
-        card.add(Box.createVerticalStrut(10));
+        body.add(settingRow("Категория", categoryBox));
+        body.add(Box.createVerticalStrut(10));
 
         sizeBox = new JComboBox<>(GameSettings.BOARD_SIZES.toArray(new GameSettings.BoardSize[0]));
         sizeBox.setSelectedItem(new GameSettings.BoardSize(settings.height(), settings.width()));
-        card.add(settingRow("Размер сетки", sizeBox));
-        card.add(Box.createVerticalStrut(10));
+        body.add(settingRow("Размер сетки", sizeBox));
+        body.add(Box.createVerticalStrut(10));
 
         durationSpinner = new JSpinner(new SpinnerNumberModel(
                 (int) settings.timeLimit().toMinutes(),
                 GameSettings.MIN_MINUTES,
                 GameSettings.MAX_MINUTES,
                 1));
-        card.add(settingRow("Длительность, мин", durationSpinner));
-        card.add(Box.createVerticalStrut(18));
+        body.add(settingRow("Длительность, мин", durationSpinner));
+        body.add(Box.createVerticalStrut(16));
 
         JLabel appearanceTitle = new JLabel("Оформление");
         appearanceTitle.setFont(Theme.HEADING);
-        appearanceTitle.setForeground(Theme.BLUE);
+        appearanceTitle.setForeground(Theme.PURPLE);
         appearanceTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(appearanceTitle);
-        card.add(Box.createVerticalStrut(8));
+        body.add(appearanceTitle);
+        body.add(Box.createVerticalStrut(8));
 
         themeBox = new JComboBox<>(ThemeChoice.values());
         themeBox.setSelectedItem(uiSettings.theme());
-        card.add(settingRow("Тема", themeBox));
-        card.add(Box.createVerticalStrut(10));
+        body.add(settingRow("Тема", themeBox));
+        body.add(Box.createVerticalStrut(10));
 
         soundBox = new JCheckBox("Звуковые эффекты", uiSettings.soundEnabled());
         styleCheckBox(soundBox);
-        card.add(soundBox);
-        card.add(Box.createVerticalStrut(8));
+        body.add(soundBox);
+        body.add(Box.createVerticalStrut(8));
 
         animationsBox = new JCheckBox("Анимация подсветки", uiSettings.animationsEnabled());
         styleCheckBox(animationsBox);
-        card.add(animationsBox);
-        card.add(Box.createVerticalStrut(14));
+        body.add(animationsBox);
+        body.add(Box.createVerticalStrut(14));
 
         settingsStatus = new JLabel(" ");
         settingsStatus.setFont(Theme.BODY);
         settingsStatus.setForeground(Theme.MUTED);
         settingsStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(settingsStatus);
-        card.add(Box.createVerticalStrut(18));
+        body.add(settingsStatus);
+        body.add(Box.createVerticalStrut(18));
 
         difficultyBox.addActionListener(e -> applyDifficultyDefaults());
         categoryBox.addActionListener(e -> clearSettingsStatus());
@@ -278,7 +288,7 @@ public final class MainWindow extends JFrame {
         actions.add(play);
         actions.add(back);
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(actions);
+        body.add(actions);
 
         panel.add(card);
         return panel;
@@ -437,36 +447,56 @@ public final class MainWindow extends JFrame {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(Theme.BACKGROUND);
 
-        JPanel card = new JPanel();
-        Theme.styleCard(card);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Theme.PANEL);
+        card.setBorder(BorderFactory.createLineBorder(Theme.BORDER, 1, true));
+
+        GradientPanel header = new GradientPanel(Theme.RED, Theme.RED_DARK);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBorder(BorderFactory.createEmptyBorder(16, 22, 16, 22));
 
         finishTitle = new JLabel("Раунд пройден");
-        finishSubtitle = new JLabel();
-        finishScore = new JLabel();
-        finishBreakdown = new JLabel();
-        finishTotal = new JLabel();
-
         finishTitle.setFont(Theme.TITLE);
-        finishTitle.setForeground(Theme.RED);
-        finishTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        finishTitle.setForeground(Color.WHITE);
+        finishTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        finishSubtitle.setFont(Theme.BODY);
-        finishSubtitle.setForeground(Theme.MUTED);
-        finishSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        finishSubtitle = new JLabel();
+        finishSubtitle.setFont(Theme.SMALL);
+        finishSubtitle.setForeground(new Color(0xFFE0E0));
+        finishSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        header.add(finishTitle);
+        header.add(Box.createVerticalStrut(6));
+        header.add(finishSubtitle);
+        card.add(header, BorderLayout.NORTH);
+
+        JPanel body = new JPanel();
+        Theme.styleBody(body);
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        card.add(body, BorderLayout.CENTER);
+
+        finishScore = new JLabel();
         finishScore.setFont(Theme.HEADING);
         finishScore.setForeground(Theme.BLUE);
         finishScore.setHorizontalAlignment(SwingConstants.CENTER);
         finishScore.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        finishBreakdown = new JLabel();
         finishBreakdown.setFont(Theme.BODY);
         finishBreakdown.setForeground(Theme.TEXT);
         finishBreakdown.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        finishTotal.setFont(Theme.BODY);
+        finishTotal = new JLabel();
+        finishTotal.setFont(Theme.HEADING);
         finishTotal.setForeground(Theme.GREEN);
         finishTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        body.add(finishScore);
+        body.add(Box.createVerticalStrut(8));
+        body.add(finishBreakdown);
+        body.add(Box.createVerticalStrut(14));
+        body.add(finishTotal);
+        body.add(Box.createVerticalStrut(26));
 
         nextRoundButton = Theme.button("Следующий раунд", Theme.GREEN);
         JButton menu = Theme.button("В меню", Theme.BLUE);
@@ -478,19 +508,9 @@ public final class MainWindow extends JFrame {
         });
         menu.addActionListener(e -> showMenu());
 
-        card.add(finishTitle);
-        card.add(Box.createVerticalStrut(6));
-        card.add(finishSubtitle);
-        card.add(Box.createVerticalStrut(22));
-        card.add(finishScore);
-        card.add(Box.createVerticalStrut(8));
-        card.add(finishBreakdown);
-        card.add(Box.createVerticalStrut(10));
-        card.add(finishTotal);
-        card.add(Box.createVerticalStrut(26));
-        card.add(nextRoundButton);
-        card.add(Box.createVerticalStrut(10));
-        card.add(menu);
+        body.add(nextRoundButton);
+        body.add(Box.createVerticalStrut(10));
+        body.add(menu);
 
         panel.add(card);
         return panel;
@@ -559,14 +579,60 @@ public final class MainWindow extends JFrame {
     private void showStatistics() {
         DailyStatistics statistics = DailyStatistics.from(repository.load());
 
-        StringBuilder text = new StringBuilder();
-        text.append("Лучший счёт: ").append(statistics.bestScore()).append('\n')
-                .append("Серия дней: ").append(statistics.currentStreak()).append('\n')
-                .append("Дней со статистикой: ").append(statistics.daysPlayed()).append('\n')
-                .append("Найдено слов: ").append(statistics.wordsFound());
+        JDialog dialog = new JDialog(this, "Личная статистика", true);
+        dialog.setLayout(new BorderLayout());
+        dialog.getContentPane().setBackground(Theme.BACKGROUND);
 
-        JOptionPane.showMessageDialog(this, text.toString(),
-                "Личная статистика", JOptionPane.INFORMATION_MESSAGE);
+        GradientPanel header = new GradientPanel(Theme.TEAL, Theme.TEAL.darker());
+        header.setLayout(new BorderLayout());
+        header.setBorder(BorderFactory.createEmptyBorder(16, 22, 16, 22));
+        JLabel title = new JLabel("Личная статистика · сетка дня");
+        title.setFont(Theme.HEADING);
+        title.setForeground(Color.WHITE);
+        header.add(title, BorderLayout.WEST);
+        dialog.add(header, BorderLayout.NORTH);
+
+        JPanel tiles = new JPanel(new java.awt.GridLayout(2, 2, 12, 12));
+        tiles.setOpaque(false);
+        tiles.setBorder(BorderFactory.createEmptyBorder(18, 18, 6, 18));
+        tiles.add(statTile("Лучший счёт", String.valueOf(statistics.bestScore()), Theme.RED));
+        tiles.add(statTile("Серия дней", String.valueOf(statistics.currentStreak()), Theme.GREEN));
+        tiles.add(statTile("Дней с играми", String.valueOf(statistics.daysPlayed()), Theme.BLUE));
+        tiles.add(statTile("Найдено слов", String.valueOf(statistics.wordsFound()), Theme.PURPLE));
+        dialog.add(tiles, BorderLayout.CENTER);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actions.setOpaque(false);
+        actions.setBorder(BorderFactory.createEmptyBorder(0, 18, 18, 18));
+        JButton close = Theme.button("Закрыть", Theme.TEAL);
+        close.addActionListener(e -> dialog.dispose());
+        actions.add(close);
+        dialog.add(actions, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.setSize(Math.max(420, dialog.getWidth()), dialog.getHeight());
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private JPanel statTile(String caption, String value, Color color) {
+        JPanel tile = new JPanel(new BorderLayout(0, 4));
+        tile.setBackground(Theme.PANEL);
+        tile.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(color, 2, true),
+                BorderFactory.createEmptyBorder(14, 16, 14, 16)));
+
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(Theme.TITLE);
+        valueLabel.setForeground(color);
+
+        JLabel captionLabel = new JLabel(caption);
+        captionLabel.setFont(Theme.BODY);
+        captionLabel.setForeground(Theme.MUTED);
+
+        tile.add(valueLabel, BorderLayout.NORTH);
+        tile.add(captionLabel, BorderLayout.SOUTH);
+        return tile;
     }
 
     private void showLeaderboard() {

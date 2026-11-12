@@ -6,7 +6,7 @@
 
     <groupId>game</groupId>
     <artifactId>zaeso-words</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
     <name>zaeso-Words</name>
     <description>Консольная игра «Поиск слов» на Java</description>
 

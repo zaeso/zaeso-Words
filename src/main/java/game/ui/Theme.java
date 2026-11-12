@@ -21,6 +21,9 @@ public final class Theme {
     public static Color BLUE_DARK = new Color(0x0D47A1);
     public static Color GREEN = new Color(0x2E7D32);
     public static Color GREEN_LIGHT = new Color(0xC8E6C9);
+    public static Color PURPLE = new Color(0x6A1B9A);
+    public static Color ORANGE = new Color(0xE65100);
+    public static Color TEAL = new Color(0x00695C);
     public static Color BACKGROUND = new Color(0xF4F7FB);
     public static Color PANEL = Color.WHITE;
     public static Color TEXT = new Color(0x1E2430);
@@ -54,6 +57,9 @@ public final class Theme {
                 BLUE_DARK = new Color(0x0C2D6B);
                 GREEN = new Color(0x0F766E);
                 GREEN_LIGHT = new Color(0xA5F3FC);
+                PURPLE = new Color(0x7B1FA2);
+                ORANGE = new Color(0xF57C00);
+                TEAL = new Color(0x00897B);
                 BACKGROUND = new Color(0xEEF7FA);
                 PANEL = Color.WHITE;
                 TEXT = new Color(0x0F172A);
@@ -69,6 +75,9 @@ public final class Theme {
                 BLUE_DARK = new Color(0x5C3D1F);
                 GREEN = new Color(0x2E7D32);
                 GREEN_LIGHT = new Color(0xDCEDC8);
+                PURPLE = new Color(0x6A4C93);
+                ORANGE = new Color(0xB26A00);
+                TEAL = new Color(0x386641);
                 BACKGROUND = new Color(0xF5F8EF);
                 PANEL = Color.WHITE;
                 TEXT = new Color(0x1F2A1C);
@@ -84,6 +93,9 @@ public final class Theme {
                 BLUE_DARK = new Color(0x0B1220);
                 GREEN = new Color(0x15803D);
                 GREEN_LIGHT = new Color(0x86EFAC);
+                PURPLE = new Color(0x9C27B0);
+                ORANGE = new Color(0xFFB74D);
+                TEAL = new Color(0x26A69A);
                 BACKGROUND = new Color(0x0F141C);
                 PANEL = new Color(0x1A2230);
                 TEXT = new Color(0xE8EDF5);
@@ -99,6 +111,9 @@ public final class Theme {
                 BLUE_DARK = new Color(0x0D47A1);
                 GREEN = new Color(0x2E7D32);
                 GREEN_LIGHT = new Color(0xC8E6C9);
+                PURPLE = new Color(0x6A1B9A);
+                ORANGE = new Color(0xE65100);
+                TEAL = new Color(0x00695C);
                 BACKGROUND = new Color(0xF4F7FB);
                 PANEL = Color.WHITE;
                 TEXT = new Color(0x1E2430);
@@ -125,5 +140,11 @@ public final class Theme {
     public static void styleCard(JComponent component) {
         component.setBackground(PANEL);
         component.setBorder(cardBorder());
+    }
+
+    /** Внутренность карточки с градиентной шапкой: фон панели и отступы. */
+    public static void styleBody(JComponent component) {
+        component.setBackground(PANEL);
+        component.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
     }
 }
