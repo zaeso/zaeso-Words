@@ -29,6 +29,7 @@ public final class GridPanel extends JPanel {
     private static final Color HINT_GREEN_BORDER = new Color(0x1B5E20);
 
     private final Consumer<String> onWordSelected;
+    private final Consumer<String> onPreview;
     private final Timer animationTimer;
     private char[][] grid = new char[0][0];
     private final Map<Cell, Color> foundCells = new HashMap<>();
@@ -36,11 +37,18 @@ public final class GridPanel extends JPanel {
     private final Set<Cell> hintCells = new HashSet<>();
     private final List<Cell> selection = new ArrayList<>();
     private boolean animationsEnabled = true;
+    private boolean dragged;
     private long animationStart;
     private Cell anchor;
 
     public GridPanel(Consumer<String> onWordSelected) {
+        this(onWordSelected, null);
+    }
+
+    /** @param onPreview получает выделяемое слово во время выбора (может быть null). */
+    public GridPanel(Consumer<String> onWordSelected, Consumer<String> onPreview) {
         this.onWordSelected = onWordSelected;
+        this.onPreview = onPreview;
         this.animationTimer = new Timer(40, e -> animateHighlight());
         setOpaque(true);
         setBackground(Theme.BLUE_DARK);
@@ -50,9 +58,34 @@ public final class GridPanel extends JPanel {
         MouseAdapter mouse = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                anchor = cellAt(e.getPoint());
+                if (e.getButton() == MouseEvent.BUTTON3) {
+                    resetSelection();
+                    repaint();
+                    return;
+                }
+                if (e.getButton() != MouseEvent.BUTTON1) return;
+                requestFocusInWindow();
+                Cell current = cellAt(e.getPoint());
+                if (current == null) return;
+
+                // Второй клик: завершение выделения по прямой от первой буквы.
+                if (anchor != null && !dragged) {
+                    List<Cell> line = line(anchor, current);
+                    if (line.size() >= 2) {
+                        selection.clear();
+                        selection.addAll(line);
+                        submitSelection();
+                        repaint();
+                        return;
+                    }
+                }
+
+                // Новое выделение: клик задает первую букву.
+                anchor = current;
                 selection.clear();
-                if (anchor != null) selection.add(anchor);
+                selection.add(current);
+                dragged = false;
+                notifyPreview();
                 repaint();
             }
 
@@ -61,35 +94,41 @@ public final class GridPanel extends JPanel {
                 if (anchor == null) return;
                 Cell current = cellAt(e.getPoint());
                 if (current == null) return;
+                List<Cell> line = line(anchor, current);
+                if (line.equals(selection)) return;
+                dragged = true;
                 selection.clear();
-                selection.addAll(line(anchor, current));
+                selection.addAll(line);
+                notifyPreview();
                 repaint();
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (selection.size() >= 2) {
-                    StringBuilder word = new StringBuilder();
-                    for (Cell cell : selection) {
-                        word.append(grid[cell.row][cell.col]);
+                boolean wasDragged = dragged;
+                dragged = false;
+                if (wasDragged) {
+                    if (selection.size() >= 2) {
+                        submitSelection();
+                    } else {
+                        resetSelection();
                     }
-                    onWordSelected.accept(word.toString());
-                }
-                selection.clear();
-                anchor = null;
-                repaint();
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (anchor == null) {
-                    selection.clear();
                     repaint();
                 }
+                // Одиночный клик сохраняет выделение до второго клика или отмены.
             }
         };
         addMouseListener(mouse);
         addMouseMotionListener(mouse);
+        addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent event) {
+                if (event.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    resetSelection();
+                    repaint();
+                }
+            }
+        });
     }
 
     public void setGrid(char[][] grid) {
@@ -97,10 +136,40 @@ public final class GridPanel extends JPanel {
         this.foundCells.clear();
         this.animatedCells.clear();
         this.hintCells.clear();
-        this.selection.clear();
+        resetSelection();
         this.animationTimer.stop();
         setBackground(Theme.BLUE_DARK);
         repaint();
+    }
+
+    /** Сбрасывает выделение мышью: по клику, Escape или новому раунду. */
+    public void resetSelection() {
+        selection.clear();
+        anchor = null;
+        dragged = false;
+        notifyPreview();
+    }
+
+    private void submitSelection() {
+        StringBuilder word = new StringBuilder();
+        for (Cell cell : selection) {
+            word.append(grid[cell.row][cell.col]);
+        }
+        onWordSelected.accept(word.toString());
+        resetSelection();
+    }
+
+    private void notifyPreview() {
+        if (onPreview == null) return;
+        if (selection.isEmpty()) {
+            onPreview.accept("");
+            return;
+        }
+        StringBuilder word = new StringBuilder();
+        for (Cell cell : selection) {
+            word.append(grid[cell.row][cell.col]);
+        }
+        onPreview.accept(word.toString());
     }
 
     /**
@@ -213,6 +282,12 @@ public final class GridPanel extends JPanel {
             if (grid.length == 0) return;
 
             Metrics metrics = metrics();
+            g.setColor(new Color(255, 255, 255, 16));
+            g.fillOval(-getWidth() / 4, -getHeight() / 5,
+                    getWidth() / 2, getHeight() / 2);
+            g.fillOval(getWidth() * 3 / 4, getHeight() / 6,
+                    getWidth() / 3, getHeight() / 3);
+
             int fontSize = Math.max(14, (int) (metrics.cell * 0.46));
             g.setFont(new Font("Segoe UI", Font.BOLD, fontSize));
             FontMetrics fontMetrics = g.getFontMetrics();
@@ -224,6 +299,8 @@ public final class GridPanel extends JPanel {
                     int y = metrics.originY + row * (metrics.cell + GAP);
 
                     Color foundColor = foundCells.get(cell);
+                    g.setColor(new Color(0, 0, 0, 46));
+                    g.fillRoundRect(x + 2, y + 3, metrics.cell, metrics.cell, 10, 10);
                     if (foundColor != null) {
                         g.setColor(foundColor(cell, foundColor));
                     } else if (hintCells.contains(cell)) {

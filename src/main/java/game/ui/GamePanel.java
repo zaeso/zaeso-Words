@@ -83,12 +83,15 @@ public final class GamePanel extends JPanel {
     private final JPanel wordsPanel = new JPanel(new GridLayout(0, 1, 0, 4));
     private final JLabel roundLabel = new JLabel();
     private final JLabel totalLabel = new JLabel();
-    private final JLabel timeLabel = new JLabel();
-    private final JLabel hintsLabel = new JLabel();
+    private final BadgeLabel foundLabel = new BadgeLabel("Найдено 0/0");
+    private final BadgeLabel timeLabel = new BadgeLabel("Время");
+    private final BadgeLabel hintsLabel = new BadgeLabel("Подсказки");
     private final JLabel statusLabel = new JLabel(" ");
     private final JButton hintButton = Theme.button("Подсказка", Theme.GREEN);
+    private final JButton finishButton = Theme.button("Завершить раунд", Theme.ORANGE);
     private final JButton menuButton = Theme.button("В меню", Theme.RED_DARK);
     private final Timer ticker;
+    private javax.swing.border.TitledBorder wordsBorder;
 
     private GameSession session;
     private UiSettings uiSettings = UiSettings.defaults();
@@ -101,7 +104,7 @@ public final class GamePanel extends JPanel {
         this.listener = listener;
         this.menuAction = menuAction;
         this.repository = repository;
-        this.gridPanel = new GridPanel(this::submitWord);
+        this.gridPanel = new GridPanel(this::submitWord, this::previewSelection);
         this.ticker = new Timer(250, this::tick);
 
         setLayout(new BorderLayout(14, 14));
@@ -113,6 +116,11 @@ public final class GamePanel extends JPanel {
         add(buildFooter(), BorderLayout.SOUTH);
 
         hintButton.addActionListener(e -> useHint());
+        finishButton.addActionListener(e -> {
+            if (session != null && !session.isFinished()) {
+                finish(FinishReason.PLAYER_EXIT);
+            }
+        });
         menuButton.addActionListener(e -> menuAction.run());
     }
 
@@ -166,7 +174,7 @@ public final class GamePanel extends JPanel {
         rebuildWordList();
         setControlsEnabled(true);
         statusLabel.setForeground(Theme.MUTED);
-        statusLabel.setText("Выделите слово мышью");
+        statusLabel.setText("Выделяйте слова: тяните мышью или кликните первую и последнюю буквы");
         updateIndicators();
         ticker.restart();
     }
@@ -195,12 +203,15 @@ public final class GamePanel extends JPanel {
         left.add(Box.createVerticalStrut(2));
         left.add(totalLabel);
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 18, 0));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         right.setOpaque(false);
-        timeLabel.setFont(Theme.BODY);
+        foundLabel.setFont(Theme.BUTTON);
+        foundLabel.setForeground(Color.WHITE);
+        timeLabel.setFont(Theme.BUTTON);
         timeLabel.setForeground(Color.WHITE);
-        hintsLabel.setFont(Theme.BODY);
+        hintsLabel.setFont(Theme.BUTTON);
         hintsLabel.setForeground(Color.WHITE);
+        right.add(foundLabel);
         right.add(timeLabel);
         right.add(hintsLabel);
 
@@ -218,13 +229,14 @@ public final class GamePanel extends JPanel {
         JScrollPane scroll = new JScrollPane(wordsPanel);
         scroll.setPreferredSize(new Dimension(240, 0));
         scroll.getViewport().setBackground(Theme.BACKGROUND);
-        scroll.setBorder(BorderFactory.createTitledBorder(
+        wordsBorder = BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(Theme.BORDER),
                 "Слова",
                 javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
                 javax.swing.border.TitledBorder.DEFAULT_POSITION,
                 Theme.SMALL,
-                Theme.MUTED));
+                Theme.MUTED);
+        scroll.setBorder(wordsBorder);
         center.add(scroll, BorderLayout.EAST);
         return center;
     }
@@ -236,6 +248,7 @@ public final class GamePanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actions.setOpaque(false);
         actions.add(hintButton);
+        actions.add(finishButton);
         actions.add(menuButton);
 
         statusLabel.setFont(Theme.BODY);
@@ -249,6 +262,23 @@ public final class GamePanel extends JPanel {
 
     private static String leaderboardName(Difficulty difficulty, WordCategory category) {
         return difficulty.displayName() + " · " + category.displayName();
+    }
+
+    /** Живой предпросмотр слова под курсором во время выделения. */
+    private void previewSelection(String preview) {
+        if (preview.isEmpty()) return;
+        statusLabel.setForeground(Theme.BLUE);
+        statusLabel.setText("Выделяете: " + preview.trim().toUpperCase()
+                + " · " + preview.length() + " "
+                + pluralLetters(preview.length()));
+    }
+
+    private static String pluralLetters(int count) {
+        int last10 = count % 10;
+        int last100 = count % 100;
+        if (last10 == 1 && last100 != 11) return "буква";
+        if (last10 >= 2 && last10 <= 4 && (last100 < 10 || last100 >= 20)) return "буквы";
+        return "букв";
     }
 
     private void submitWord(String word) {
@@ -360,10 +390,23 @@ public final class GamePanel extends JPanel {
 
     private void updateIndicators() {
         if (session == null) return;
-        timeLabel.setText("Время " + GameTimer.format(session.remainingSeconds()));
+        long remaining = session.remainingSeconds();
+        timeLabel.setText("Время " + GameTimer.format(remaining));
+        timeLabel.setForeground(remaining <= 30
+                ? new Color(0xFF8A80) : Color.WHITE);
         hintsLabel.setText("Подсказки " + (session.hintsLimit() - session.hintsUsed())
                 + "/" + session.hintsLimit());
+        int found = session.foundWords().size();
+        int total = session.allWords().size();
+        foundLabel.setText("Найдено " + found + "/" + total);
+        if (wordsBorder != null) {
+            wordsBorder.setTitle("Слова · " + found + "/" + total);
+            wordsPanel.repaint();
+        }
         totalLabel.setText("Всего очков: " + (carriedScore + session.score().total()));
+
+        int hintsLeft = session.hintsLimit() - session.hintsUsed();
+        hintButton.setEnabled(hintsLeft > 0 && !session.isFinished());
     }
 
     private void tick(ActionEvent event) {
@@ -391,6 +434,7 @@ public final class GamePanel extends JPanel {
 
     private void setControlsEnabled(boolean enabled) {
         hintButton.setEnabled(enabled);
+        finishButton.setEnabled(enabled);
         gridPanel.setEnabled(enabled);
     }
 

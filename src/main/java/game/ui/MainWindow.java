@@ -70,8 +70,11 @@ public final class MainWindow extends JFrame {
     private JLabel finishTitle;
     private JLabel finishSubtitle;
     private JLabel finishScore;
-    private JLabel finishBreakdown;
     private JLabel finishTotal;
+    private JLabel tileLetters;
+    private JLabel tileTime;
+    private JLabel tileMistakes;
+    private JLabel tileHints;
     private JLabel settingsStatus;
     private JButton nextRoundButton;
 
@@ -516,11 +519,6 @@ public final class MainWindow extends JFrame {
         finishScore.setHorizontalAlignment(SwingConstants.CENTER);
         finishScore.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        finishBreakdown = new JLabel();
-        finishBreakdown.setFont(Theme.BODY);
-        finishBreakdown.setForeground(Theme.TEXT);
-        finishBreakdown.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         finishTotal = new JLabel();
         finishTotal.setFont(Theme.HEADING);
         finishTotal.setForeground(Theme.GREEN);
@@ -535,8 +533,15 @@ public final class MainWindow extends JFrame {
                 BorderFactory.createEmptyBorder(16, 26, 16, 26)));
         scoreTile.setMaximumSize(new Dimension(520, 220));
         scoreTile.add(finishScore);
-        scoreTile.add(Box.createVerticalStrut(6));
-        scoreTile.add(finishBreakdown);
+
+        JPanel breakdown = new JPanel(new java.awt.GridLayout(1, 4, 8, 0));
+        breakdown.setOpaque(false);
+        breakdown.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+        breakdown.add(miniTile(tileLetters = new JLabel(), "Буквы", Theme.GREEN));
+        breakdown.add(miniTile(tileTime = new JLabel(), "Время", Theme.BLUE));
+        breakdown.add(miniTile(tileMistakes = new JLabel(), "Ошибки", Theme.RED));
+        breakdown.add(miniTile(tileHints = new JLabel(), "Подсказки", Theme.PURPLE));
+        scoreTile.add(breakdown);
         scoreTile.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         body.add(scoreTile);
@@ -600,9 +605,14 @@ public final class MainWindow extends JFrame {
 
     private void roundFinished(GameResult result, boolean timeExpired) {
         totalScore += result.totalScore();
-        finishTitle.setText(timeExpired
-                ? "Время вышло"
-                : (dailyMode ? "Сетка дня пройдена" : "Раунд пройден"));
+        if (timeExpired) {
+            finishTitle.setText("Время вышло");
+        } else if ("выход игрока".equals(result.finishReason())) {
+            finishTitle.setText("Раунд завершён");
+        } else {
+            finishTitle.setText(dailyMode
+                    ? "Сетка дня пройдена" : "Раунд пройден");
+        }
 
         String mode = dailyMode
                 ? "Сетка дня · " + DailyPuzzle.formatDate(dailyDate)
@@ -616,7 +626,11 @@ public final class MainWindow extends JFrame {
                 + ": найдено " + result.foundWords() + " из " + result.totalWords()
                 + " · время " + GameTimer.format(result.elapsedSeconds()));
         finishScore.setText("Очки за раунд: " + result.totalScore());
-        finishBreakdown.setText(GamePanel.breakdown(result.score()));
+        game.score.Score score = result.score();
+        tileLetters.setText("+" + score.wordPoints());
+        tileTime.setText("+" + score.timeBonus());
+        tileMistakes.setText("−" + score.mistakePenalty());
+        tileHints.setText("−" + score.hintPenalty());
         finishTotal.setText("Всего очков: " + totalScore);
         nextRoundButton.setVisible(!dailyMode);
         cards.show(root, FINISH);
@@ -659,6 +673,28 @@ public final class MainWindow extends JFrame {
         dialog.setSize(Math.max(420, dialog.getWidth()), dialog.getHeight());
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
+    }
+
+    /** Мини-плитка разбора очков на экране итогов. */
+    private JPanel miniTile(JLabel value, String caption, Color color) {
+        value.setFont(Theme.HEADING);
+        value.setForeground(color);
+        value.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel captionLabel = new JLabel(caption);
+        captionLabel.setFont(Theme.SMALL);
+        captionLabel.setForeground(Theme.MUTED);
+        captionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JPanel tile = new JPanel(new BorderLayout(0, 2));
+        tile.setOpaque(true);
+        tile.setBackground(Theme.PANEL);
+        tile.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(color, 1, true),
+                BorderFactory.createEmptyBorder(10, 8, 10, 8)));
+        tile.add(value, BorderLayout.CENTER);
+        tile.add(captionLabel, BorderLayout.SOUTH);
+        return tile;
     }
 
     private JPanel statTile(String caption, String value, Color color) {
