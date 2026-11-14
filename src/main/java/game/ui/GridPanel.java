@@ -219,6 +219,18 @@ public final class GridPanel extends JPanel {
         return foundCells.get(cell);
     }
 
+    /** Повторная анимация подсветки клеток (например, по клику на слово в списке). */
+    public void flashCells(Set<Cell> cells) {
+        if (cells == null || cells.isEmpty()) return;
+        if (animationsEnabled) {
+            animatedCells.clear();
+            animatedCells.addAll(cells);
+            animationStart = System.currentTimeMillis();
+            animationTimer.restart();
+        }
+        repaint();
+    }
+
     /** Включает или выключает плавную подсветку найденных букв. */
     public void setAnimationsEnabled(boolean enabled) {
         this.animationsEnabled = enabled;

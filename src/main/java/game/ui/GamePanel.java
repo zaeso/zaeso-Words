@@ -22,6 +22,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -31,12 +32,15 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -377,15 +381,93 @@ public final class GamePanel extends JPanel {
 
     private void rebuildWordList() {
         wordsPanel.removeAll();
-        for (String word : session.allWords()) {
-            boolean found = session.isFound(word);
-            JLabel label = new JLabel(found ? word : "• " + word);
-            label.setFont(Theme.BODY);
-            label.setForeground(found ? listColor(word) : Theme.TEXT);
-            wordsPanel.add(label);
+        List<String> words = new java.util.ArrayList<>(session.allWords());
+        java.util.Collections.sort(words);
+        for (String word : words) {
+            wordsPanel.add(new WordChip(word, session.isFound(word)));
         }
         wordsPanel.revalidate();
         wordsPanel.repaint();
+    }
+
+    /** Подсветка найденного слова на сетке по клику в списке. */
+    private void flashWord(String word) {
+        if (session == null) return;
+        java.util.Set<GridPanel.Cell> cells = new java.util.HashSet<>();
+        session.placementFor(word).ifPresent(placement -> {
+            int rowStep = placement.direction().rowStep();
+            int colStep = placement.direction().colStep();
+            for (int i = 0; i < placement.word().length(); i++) {
+                cells.add(new GridPanel.Cell(
+                        placement.startRow() + rowStep * i,
+                        placement.startCol() + colStep * i));
+            }
+        });
+        gridPanel.flashCells(cells);
+    }
+
+    /** Плашка слова в списке: цветная для найденных, клик подсвечивает на сетке. */
+    private final class WordChip extends JComponent {
+        private static final int ARC = 13;
+        private static final int TEXT_LEFT = 15;
+
+        private final String word;
+        private final boolean found;
+        private final Color color;
+
+        WordChip(String word, boolean found) {
+            this.word = word;
+            this.found = found;
+            this.color = found ? listColor(word) : Theme.TEXT;
+            if (found) {
+                setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseClicked(java.awt.event.MouseEvent event) {
+                        flashWord(WordChip.this.word);
+                    }
+                });
+            }
+            java.awt.FontMetrics metrics = getFontMetrics(Theme.BODY);
+            setPreferredSize(new Dimension(metrics.stringWidth(word) + 30, 26));
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int width = getWidth();
+                int height = getHeight();
+                if (found) {
+                    g.setColor(color);
+                    g.fillRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
+                    g.setColor(color.darker());
+                    g.drawRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
+                } else {
+                    g.setColor(Theme.PANEL);
+                    g.fillRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
+                    g.setColor(Theme.BORDER);
+                    g.drawRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
+                }
+
+                g.setFont(Theme.BODY);
+                java.awt.FontMetrics metrics = g.getFontMetrics();
+                int textY = (height - metrics.getHeight()) / 2 + metrics.getAscent();
+                if (found) {
+                    g.setColor(new Color(0, 0, 0, 45));
+                    g.drawString(word, TEXT_LEFT, textY + 1);
+                    g.setColor(luminance(color) < 0.55
+                            ? Color.WHITE : new Color(0x263238));
+                } else {
+                    g.setColor(Theme.MUTED);
+                }
+                g.drawString(word, TEXT_LEFT, textY);
+            } finally {
+                g.dispose();
+            }
+        }
     }
 
     private void updateIndicators() {
