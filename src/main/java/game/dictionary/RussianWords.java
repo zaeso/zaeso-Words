@@ -132,9 +132,11 @@ final class RussianWords {
 
         Map<Integer, List<String>> pools = new LinkedHashMap<>();
         reservoirs.forEach((length, reservoir) -> {
-            reservoir.shuffle(random);
-            pools.put(length, Collections.unmodifiableList(
-                    new ArrayList<>(reservoir.words)));
+            if (!reservoir.words.isEmpty()) {
+                reservoir.shuffle(random);
+                pools.put(length, Collections.unmodifiableList(
+                        new ArrayList<>(reservoir.words)));
+            }
         });
         return Collections.unmodifiableMap(pools);
     }

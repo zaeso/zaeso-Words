@@ -15,23 +15,25 @@ import java.awt.Font;
  * Кнопки подсвечиваются при наведении и мягко «проваливаются» при нажатии.
  */
 public final class Theme {
-    public static Color RED = new Color(0xC62828);
-    public static Color RED_DARK = new Color(0x8E1B1B);
-    public static Color BLUE = new Color(0x1565C0);
-    public static Color BLUE_DARK = new Color(0x0D47A1);
-    public static Color GREEN = new Color(0x2E7D32);
-    public static Color GREEN_LIGHT = new Color(0xC8E6C9);
-    public static Color PURPLE = new Color(0x6A1B9A);
-    public static Color ORANGE = new Color(0xE65100);
-    public static Color TEAL = new Color(0x00695C);
-    public static Color BACKGROUND = new Color(0xF4F7FB);
+    public static Color RED = new Color(0x244055);
+    public static Color RED_DARK = new Color(0x172B3C);
+    public static Color BLUE = new Color(0x345B73);
+    public static Color BLUE_DARK = new Color(0x1B3447);
+    public static Color GREEN = new Color(0x25664F);
+    public static Color GREEN_LIGHT = new Color(0xBEE8CD);
+    public static Color PURPLE = new Color(0x66577A);
+    public static Color ORANGE = new Color(0x8B521C);
+    public static Color TEAL = new Color(0x236764);
+    public static Color BACKGROUND = new Color(0xEFF3F5);
     public static Color PANEL = Color.WHITE;
-    public static Color TEXT = new Color(0x1E2430);
-    public static Color MUTED = new Color(0x5F6B7A);
-    public static Color SUBTITLE = new Color(0xFFE0E0);
-    public static Color BORDER = new Color(0xD8E1EC);
+    public static Color TEXT = new Color(0x172B3C);
+    public static Color MUTED = new Color(0x4D6574);
+    public static Color SUBTITLE = new Color(0xBDD1DB);
+    public static Color BORDER = new Color(0xCDDAE1);
     public static Color CELL = Color.WHITE;
-    public static Color CELL_TEXT = new Color(0x1E2430);
+    public static Color CELL_TEXT = new Color(0x172B3C);
+
+    public static final Color ERROR = new Color(0xAA3440);
 
     public static final Font TITLE = new Font("Segoe UI", Font.BOLD, 34);
     public static final Font HEADING = new Font("Segoe UI", Font.BOLD, 22);
@@ -73,7 +75,7 @@ public final class Theme {
                 RED_DARK = new Color(0x1B4523);
                 BLUE = new Color(0x8B5E34);
                 BLUE_DARK = new Color(0x5C3D1F);
-                GREEN = new Color(0x2E7D32);
+                GREEN = new Color(0x25664F);
                 GREEN_LIGHT = new Color(0xDCEDC8);
                 PURPLE = new Color(0x6A4C93);
                 ORANGE = new Color(0xB26A00);
@@ -105,21 +107,21 @@ public final class Theme {
                 CELL = new Color(0xE8EDF5);
                 break;
             default:
-                RED = new Color(0xC62828);
-                RED_DARK = new Color(0x8E1B1B);
-                BLUE = new Color(0x1565C0);
-                BLUE_DARK = new Color(0x0D47A1);
-                GREEN = new Color(0x2E7D32);
-                GREEN_LIGHT = new Color(0xC8E6C9);
-                PURPLE = new Color(0x6A1B9A);
-                ORANGE = new Color(0xE65100);
-                TEAL = new Color(0x00695C);
-                BACKGROUND = new Color(0xF4F7FB);
+                RED = new Color(0x244055);
+                RED_DARK = new Color(0x172B3C);
+                BLUE = new Color(0x345B73);
+                BLUE_DARK = new Color(0x1B3447);
+                GREEN = new Color(0x25664F);
+                GREEN_LIGHT = new Color(0xBEE8CD);
+                PURPLE = new Color(0x66577A);
+                ORANGE = new Color(0x8B521C);
+                TEAL = new Color(0x236764);
+                BACKGROUND = new Color(0xEFF3F5);
                 PANEL = Color.WHITE;
-                TEXT = new Color(0x1E2430);
-                MUTED = new Color(0x5F6B7A);
-                SUBTITLE = new Color(0xFFE0E0);
-                BORDER = new Color(0xD8E1EC);
+                TEXT = new Color(0x172B3C);
+                MUTED = new Color(0x4D6574);
+                SUBTITLE = new Color(0xBDD1DB);
+                BORDER = new Color(0xCDDAE1);
                 CELL = Color.WHITE;
                 break;
         }

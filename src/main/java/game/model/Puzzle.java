@@ -8,10 +8,20 @@ import java.util.stream.Collectors;
 public class Puzzle {
     private final char[][] grid;
     private final List<Placement> placements;
+    private final WordLanguage language;
 
     public Puzzle(char[][] grid, List<Placement> placements) {
+        this(grid, placements, WordLanguage.RUSSIAN);
+    }
+
+    public Puzzle(char[][] grid, List<Placement> placements, WordLanguage language) {
         this.grid = grid;
         this.placements = Collections.unmodifiableList(new ArrayList<>(placements));
+        this.language = java.util.Objects.requireNonNull(language, "language");
+    }
+
+    public WordLanguage language() {
+        return language;
     }
 
     public char[][] getGrid() {

@@ -27,23 +27,29 @@ public final class LetterPoints {
     }
 
     /**
-     * Возвращает стоимость одной русской буквы без учёта регистра.
+     * Возвращает стоимость одной русской или английской буквы без учёта регистра.
      *
-     * @throws IllegalArgumentException если символ не является буквой русского алфавита
+     * @throws IllegalArgumentException если символ не относится к игровым алфавитам
      */
     public static int pointsFor(char letter) {
         switch (Character.toUpperCase(letter)) {
             case 'О': case 'Е': case 'А': case 'И': case 'Н':
             case 'Т': case 'С': case 'Р': case 'В': case 'Л':
+            case 'E': case 'T': case 'A': case 'O': case 'I':
+            case 'N': case 'S': case 'R': case 'H': case 'L':
                 return COMMON;
             case 'К': case 'М': case 'Д': case 'П': case 'У': case 'Я':
+            case 'D': case 'C': case 'U': case 'M': case 'W': case 'F':
                 return REGULAR;
             case 'Ы': case 'Ь': case 'Г': case 'З': case 'Б': case 'Ч':
+            case 'G': case 'Y': case 'P': case 'B': case 'V':
                 return LESS_COMMON;
             case 'Й': case 'Х': case 'Ж': case 'Ш': case 'Ю':
             case 'Ц': case 'Щ': case 'Э': case 'Ф':
+            case 'K': case 'J': case 'X':
                 return RARE;
             case 'Ъ': case 'Ё':
+            case 'Q': case 'Z':
                 return VERY_RARE;
             default:
                 throw new IllegalArgumentException(

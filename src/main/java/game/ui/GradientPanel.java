@@ -7,11 +7,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 
-/**
- * Панель с вертикальным градиентом текущей темы. Используется для главного
- * меню и шапок экранов, чтобы фон выглядел аккуратно на любой Java.
- * Декоративный вариант добавляет мягкие круги и затемнение снизу.
- */
+/** Фон экранов и шапок в цветах активной темы. */
 public final class GradientPanel extends JPanel {
     private final Color top;
     private final Color bottom;
@@ -28,7 +24,7 @@ public final class GradientPanel extends JPanel {
         return new GradientPanel(Theme.RED, Theme.RED_DARK);
     }
 
-    /** Фон главного меню: градиент с декоративными кругами. */
+    /** Фон главного меню с узором из клеток. */
     public static GradientPanel menu() {
         GradientPanel panel = new GradientPanel(Theme.RED, Theme.RED_DARK);
         panel.decorated = true;
@@ -56,16 +52,13 @@ public final class GradientPanel extends JPanel {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
 
-        g.setColor(new Color(255, 255, 255, 20));
-        g.fillOval(-width / 4, -height / 5, width / 2, height / 2);
-        g.fillOval(width * 3 / 4, height / 8, width / 3, height / 3);
-
-        g.setColor(new Color(255, 255, 255, 12));
-        g.fillOval(-width / 10, height * 2 / 3, width / 2, height / 2);
-        g.fillOval(width * 2 / 3, -height / 8, width / 4, height / 4);
-
-        g.setPaint(new GradientPaint(0, height * 3 / 4, new Color(0, 0, 0, 0),
-                0, height, new Color(0, 0, 0, 42)));
-        g.fillRect(0, 0, width, height);
+        g.setColor(new Color(255, 255, 255, 11));
+        int cell = 44;
+        for (int x = 14; x < width; x += cell) {
+            g.drawLine(x, 0, x, height);
+        }
+        for (int y = 14; y < height; y += cell) {
+            g.drawLine(0, y, width, y);
+        }
     }
 }

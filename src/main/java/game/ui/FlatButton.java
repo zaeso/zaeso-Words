@@ -8,28 +8,23 @@ import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GradientPaint;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-/**
- * Плоская закруглённая кнопка, которая полностью рисует себя сама: градиент,
- * тень, блик, рамку и текст. Не зависит от установленного Look & Feel,
- * поэтому кнопки выглядят одинаково и всегда видны на любой Java.
- */
+/** Кнопка с собственными состояниями наведения, нажатия и фокуса. */
 public final class FlatButton extends JButton {
     private static final int ARC = 16;
 
     private final Color base;
-    private final Color border;
+
     private boolean hovered;
     private boolean pressed;
 
     public FlatButton(String text, Color background) {
         super(text);
         this.base = background;
-        this.border = background.darker();
+
         setOpaque(false);
         setContentAreaFilled(false);
         setBorderPainted(false);
@@ -91,47 +86,29 @@ public final class FlatButton extends JButton {
             int height = getHeight();
             boolean active = isEnabled();
 
-            Color fillTop = mix(base, Color.WHITE, 0.26);
-            Color fillBottom = base;
-            Color edge = border;
-
+            Color fill = base;
             if (!active) {
-                fillTop = mix(base, Theme.MUTED, 0.42);
-                fillBottom = mix(base, Theme.MUTED, 0.55);
-                edge = mix(border, Theme.MUTED, 0.45);
-            } else if (pressed) {
-                fillTop = mix(base, Color.BLACK, 0.10);
-                fillBottom = base.darker();
-                edge = fillBottom.darker();
+                fill = mix(base, Theme.MUTED, 0.58);
+            } else if (pressed || getModel().isPressed()) {
+                fill = mix(base, Color.BLACK, 0.18);
             } else if (hovered) {
-                fillTop = mix(base, Color.WHITE, 0.44);
-                fillBottom = mix(base, Color.WHITE, 0.10);
-                edge = fillBottom.darker();
+                fill = mix(base, Color.WHITE, 0.10);
             }
 
-            if (active && !pressed) {
-                g.setColor(new Color(0, 0, 0, hovered ? 60 : 34));
-                g.fillRoundRect(2, 4, width - 4, height - 4, ARC, ARC);
+            g.setColor(fill);
+            g.fillRoundRect(0, 0, width, height, ARC, ARC);
+            if (isFocusOwner()) {
+                g.setColor(getForeground());
+                g.drawRoundRect(3, 3, width - 7, height - 7, ARC - 4, ARC - 4);
             }
 
-            g.setPaint(new GradientPaint(0, 1, fillTop, 0, height - 1, fillBottom));
-            g.fillRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
-            g.setColor(edge);
-            g.drawRoundRect(0, 0, width - 1, height - 1, ARC, ARC);
-
-            if (active) {
-                g.setColor(new Color(255, 255, 255, 70));
-                g.drawLine(ARC, 1, width - 1 - ARC, 1);
-            }
-
+            g.setFont(getFont());
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             FontMetrics metrics = g.getFontMetrics();
             String text = getText();
             int textX = (width - metrics.stringWidth(text)) / 2;
             int textY = (height - metrics.getHeight()) / 2 + metrics.getAscent();
-            if (active) {
-                g.setColor(new Color(0, 0, 0, 60));
-                g.drawString(text, textX, textY + 1);
-            }
             g.setColor(active ? getForeground() : mix(getForeground(), Theme.MUTED, 0.4));
             g.drawString(text, textX, textY);
         } finally {

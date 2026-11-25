@@ -36,6 +36,6 @@ public final class RoundGenerator {
         List<String> pool = category.sampleWords(maxLength, sampleSize, random);
 
         return new GridGenerator(random).generateChecked(
-                config.height(), config.width(), pool, config.minWords());
+                config.height(), config.width(), pool, config.minWords(), category.language());
     }
 }

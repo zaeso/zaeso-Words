@@ -69,6 +69,16 @@ class ResultCsvExporterTest {
     }
 
     @Test
+    void protectsTextFieldsThatLookLikeFormulas() {
+        GameResult result = new GameResult(1L, " =1+2", 10, 10,
+                1, 1, 1, 0, new Score(10, 0, 0, 0), "Игра окончена");
+
+        String csv = ResultCsvExporter.toCsv(Collections.singletonList(result));
+
+        assertTrue(csv.contains(";' =1+2;10x10;"));
+    }
+
+    @Test
     void writesUtf8BomForSpreadsheetEditors() throws IOException {
         Path file = tempDir.resolve("history.csv");
         GameResult result = new GameResult(1L, "Обычный", 10, 10,

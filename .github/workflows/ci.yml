@@ -78,26 +78,36 @@ jobs:
       - name: Сборка JAR
         run: mvn --batch-mode --no-transfer-progress -DskipTests package
 
-      - name: Прикрепление JAR к релизу
+      - name: Упаковка сборки для Windows
+        run: zip -j "target/zaeso-words-${GITHUB_REF_NAME#v}-windows.zip" target/zaeso-words-*.jar run-game.bat LICENSE.txt
+
+      - name: Публикация файлов релиза
         uses: softprops/action-gh-release@v2
         with:
           files: |
             target/zaeso-words-*.jar
+            target/zaeso-words-*-windows.zip
             run-game.bat
           generate_release_notes: true
           body: |
+            ## Что нового в 1.2.0
+
+            - Новый визуальный стиль, шкала найденных слов и фоновая загрузка сетки.
+            - 502 отобранных русских слова и 376 английских. Словарь выбирается в настройках.
+            - Подтверждение перезаписи CSV и защита текстовых полей при экспорте.
+
             ## Запуск
 
-            1. Скачайте JAR и `run-game.bat` из раздела Assets и положите их в одну папку.
+            1. Скачайте архив для Windows из раздела Assets и распакуйте его.
             2. Установите Java 8 или новее (достаточно JRE).
             3. Дважды кликните `run-game.bat`.
 
             Либо запустите вручную из папки с JAR:
 
             ```bash
-            java -jar zaeso-words-1.1.5.jar
+            java -jar zaeso-words-1.2.0.jar
             ```
 
             Maven не нужен. Для отладочного консольного режима добавьте `--console`.
-            В категории «Все русские слова» сетка собирается из случайных слов полного списка.
+            В настройках можно выбрать русский словарь или «Английские слова».
             В разделе «Рекорды» доступны полная таблица результатов и экспорт истории в CSV.

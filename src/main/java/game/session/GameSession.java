@@ -19,7 +19,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Состояние одной игровой партии. Не знает о консоли или Swing: интерфейсы
@@ -27,7 +26,6 @@ import java.util.regex.Pattern;
  */
 public final class GameSession {
     public static final Duration HINT_PENALTY = Duration.ofSeconds(30);
-    private static final Pattern CYRILLIC_WORD = Pattern.compile("[А-ЯЁ]+");
 
     private final Puzzle puzzle;
     private final GameConfig config;
@@ -49,6 +47,10 @@ public final class GameSession {
         this.timer = new GameTimer(config.timeLimit());
         this.allWords = new LinkedHashSet<>(puzzle.getWords());
         this.maxWordLength = allWords.stream().mapToInt(String::length).max().orElse(0);
+    }
+
+    public String alphabetHelp() {
+        return puzzle.language().inputMessage();
     }
 
     public void start() {
@@ -88,7 +90,7 @@ public final class GameSession {
         if (answer.isEmpty()) {
             return WordResult.EMPTY;
         }
-        if (!CYRILLIC_WORD.matcher(answer).matches()) {
+        if (!puzzle.language().accepts(answer)) {
             return WordResult.NON_CYRILLIC;
         }
         if (answer.length() > maxWordLength) {

@@ -5,7 +5,7 @@ import game.config.GameConfig;
 import game.config.GameSettings;
 import game.config.SettingsStore;
 import game.dictionary.WordCategory;
-import game.generator.GridGenerator;
+import game.generator.RoundGenerator;
 import game.generator.GridGenerator.GenerationResult;
 import game.model.Puzzle;
 import game.play.ConsoleGame;
@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
@@ -48,7 +47,7 @@ public class Main {
         SettingsStore settingsStore = SettingsStore.defaultStore();
         GameSettings saved = settingsStore.load();
 
-        System.out.println("=== КЛАССИЧЕСКИЙ СКАНВОРД ===");
+        System.out.println("=== ПОИСК СЛОВ ===");
         printCategoryOptions();
         WordCategory category = chooseCategory(scanner, saved.category());
         if (category == null) return;
@@ -92,11 +91,7 @@ public class Main {
         }
 
         GameConfig config = settings.toConfig();
-        int maxLength = Math.max(config.height(), config.width());
-        int sampleSize = Math.max(config.minWords() * 4, 30);
-        List<String> pool = category.sampleWords(maxLength, sampleSize, new Random());
-        GenerationResult generation = new GridGenerator().generateChecked(
-                config.height(), config.width(), pool, config.minWords());
+        GenerationResult generation = RoundGenerator.generate(config, category);
 
         if (!generation.ok()) {
             System.out.println(generation.error());

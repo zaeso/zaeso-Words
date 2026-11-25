@@ -36,8 +36,9 @@ class LetterPointsTest {
     }
 
     @Test
-    void rejectsNonRussianLetters() {
-        assertThrows(IllegalArgumentException.class, () -> LetterPoints.pointsFor('A'));
+    void acceptsEnglishLettersAndRejectsOtherCharacters() {
+        assertEquals(LetterPoints.COMMON + LetterPoints.VERY_RARE, LetterPoints.pointsFor("az"));
+        assertThrows(IllegalArgumentException.class, () -> LetterPoints.pointsFor('Ü'));
         assertThrows(IllegalArgumentException.class, () -> LetterPoints.pointsFor("КОТ-1"));
         assertThrows(NullPointerException.class, () -> LetterPoints.pointsFor((String) null));
     }

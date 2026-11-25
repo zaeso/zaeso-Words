@@ -1,5 +1,6 @@
 package game.dictionary;
 
+import game.model.WordLanguage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,12 +32,15 @@ public final class WordCategory {
     private final String displayName;
     private final String fileName;
     private final boolean streamed;
+    private final WordLanguage language;
     private List<String> words;
 
-    private WordCategory(String displayName, String fileName, boolean streamed) {
+    private WordCategory(String displayName, String fileName, boolean streamed,
+                         WordLanguage language) {
         this.displayName = displayName;
         this.fileName = fileName;
         this.streamed = streamed;
+        this.language = language;
     }
 
     public static List<WordCategory> all() {
@@ -74,6 +78,10 @@ public final class WordCategory {
 
     public boolean streamed() {
         return streamed;
+    }
+
+    public WordLanguage language() {
+        return language;
     }
 
     /**
@@ -116,7 +124,7 @@ public final class WordCategory {
 
     /** Подпись с размером словаря для меню настроек. */
     public String wordCountText() {
-        return streamed ? "очень много слов" : words().size() + " слов";
+        return words().size() + " слов";
     }
 
     /**
@@ -125,7 +133,7 @@ public final class WordCategory {
      */
     public synchronized List<String> words() {
         if (words == null) {
-            words = loadWords(BASE_PATH + fileName);
+            words = loadWords(BASE_PATH + fileName, language);
         }
         return words;
     }
@@ -150,12 +158,14 @@ public final class WordCategory {
                 }
                 boolean streamed = parts.length == 3
                         && STREAM_MODE.equalsIgnoreCase(parts[2].trim());
-                if (parts.length == 3 && !streamed) {
+                boolean english = parts.length == 3 && "en".equalsIgnoreCase(parts[2].trim());
+                if (parts.length == 3 && !streamed && !english) {
                     throw new IllegalStateException(
                             "Неизвестный режим словаря в строке: " + value);
                 }
                 categories.add(new WordCategory(
-                        parts[0].trim(), parts[1].trim(), streamed));
+                        parts[0].trim(), parts[1].trim(), streamed,
+                        english ? WordLanguage.ENGLISH : WordLanguage.RUSSIAN));
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Не удалось прочитать индекс словарей.", e);
@@ -167,13 +177,13 @@ public final class WordCategory {
         return Collections.unmodifiableList(categories);
     }
 
-    private static List<String> loadWords(String resource) {
+    private static List<String> loadWords(String resource, WordLanguage language) {
         LinkedHashSet<String> loaded = new LinkedHashSet<>();
         try (BufferedReader reader = open(resource)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String word = line.trim().toUpperCase(Locale.ROOT);
-                if (!word.isEmpty() && !word.startsWith("#")) {
+                if (language.accepts(word)) {
                     loaded.add(word);
                 }
             }

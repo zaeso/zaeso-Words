@@ -71,6 +71,7 @@ public final class MainWindow extends JFrame {
     private JLabel finishSubtitle;
     private JLabel finishScore;
     private JLabel finishTotal;
+    private JLabel finishStatus;
     private JLabel tileLetters;
     private JLabel tileTime;
     private JLabel tileMistakes;
@@ -123,27 +124,42 @@ public final class MainWindow extends JFrame {
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("ZAESO WORDS");
-        title.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 40));
-        title.setForeground(Color.WHITE);
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel letters = new JPanel(new java.awt.GridLayout(1, 5, 6, 0));
+        letters.setOpaque(false);
+        letters.setPreferredSize(new Dimension(234, 42));
+        letters.setMaximumSize(letters.getPreferredSize());
+        letters.setAlignmentX(Component.LEFT_ALIGNMENT);
+        for (char letter : "СЛОВО".toCharArray()) {
+            JLabel tile = new JLabel(String.valueOf(letter), SwingConstants.CENTER);
+            tile.setOpaque(true);
+            tile.setBackground(Theme.GREEN_LIGHT);
+            tile.setForeground(new Color(0x173E35));
+            tile.setFont(Theme.HEADING);
+            letters.add(tile);
+        }
 
-        JLabel subtitle = new JLabel("Бесконечный поиск слов · сетка дня и личная статистика");
+        JLabel title = new JLabel("Поиск слов");
+        title.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 54));
+        title.setForeground(Color.WHITE);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel subtitle = new JLabel("Головоломки на русском и английском");
         subtitle.setFont(Theme.BODY);
         subtitle.setForeground(Theme.SUBTITLE);
-        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel version = new JLabel("версия 1.1.3 · работает на Java 8+");
+        String release = MainWindow.class.getPackage().getImplementationVersion();
+        JLabel version = new JLabel(release == null ? "zaeso-Words" : "zaeso-Words · " + release);
         version.setFont(Theme.SMALL);
         version.setForeground(new Color(255, 255, 255, 175));
-        version.setAlignmentX(Component.CENTER_ALIGNMENT);
+        version.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        FlatButton play = menuButton("Играть", Theme.GREEN);
+        FlatButton play = menuButton("Новая игра", Theme.GREEN);
         FlatButton daily = menuButton("Сетка дня", Theme.ORANGE);
-        FlatButton statistics = menuButton("Статистика", Theme.TEAL);
-        FlatButton settings = menuButton("Настройки", Theme.PURPLE);
+        FlatButton statistics = menuButton("Статистика", Theme.BLUE);
+        FlatButton settings = menuButton("Настройки", Theme.BLUE);
         FlatButton records = menuButton("Рекорды", Theme.BLUE);
-        FlatButton exit = menuButton("Выход", Theme.RED_DARK);
+        FlatButton exit = menuButton("Выход", Theme.BLUE);
 
         play.addActionListener(e -> startNewGame());
         daily.addActionListener(e -> startDailyGame());
@@ -152,51 +168,33 @@ public final class MainWindow extends JFrame {
         records.addActionListener(e -> showLeaderboard());
         exit.addActionListener(e -> dispose());
 
+        content.add(letters);
+        content.add(Box.createVerticalStrut(20));
         content.add(title);
         content.add(Box.createVerticalStrut(8));
-        content.add(accentBar());
-        content.add(Box.createVerticalStrut(10));
         content.add(subtitle);
         content.add(Box.createVerticalStrut(30));
-        content.add(play);
-        content.add(Box.createVerticalStrut(12));
-        content.add(daily);
-        content.add(Box.createVerticalStrut(12));
-        content.add(statistics);
-        content.add(Box.createVerticalStrut(12));
-        content.add(settings);
-        content.add(Box.createVerticalStrut(12));
-        content.add(records);
-        content.add(Box.createVerticalStrut(12));
-        content.add(exit);
-        content.add(Box.createVerticalStrut(26));
         content.add(version);
 
-        panel.add(content);
-        return panel;
-    }
+        JPanel actions = new JPanel(new java.awt.GridLayout(6, 1, 0, 9));
+        actions.setOpaque(false);
+        actions.setPreferredSize(new Dimension(246, 300));
+        actions.add(play);
+        actions.add(daily);
+        actions.add(records);
+        actions.add(statistics);
+        actions.add(settings);
+        actions.add(exit);
 
-    /** Светлая полоска-акцент под заголовком меню. */
-    private JComponent accentBar() {
-        JPanel bar = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics graphics) {
-                Graphics2D g = (Graphics2D) graphics.create();
-                try {
-                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                            RenderingHints.VALUE_ANTIALIAS_ON);
-                    g.setColor(new Color(255, 255, 255, 150));
-                    g.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
-                } finally {
-                    g.dispose();
-                }
-            }
-        };
-        bar.setOpaque(false);
-        bar.setPreferredSize(new Dimension(150, 5));
-        bar.setMaximumSize(new Dimension(150, 5));
-        bar.setAlignmentX(Component.CENTER_ALIGNMENT);
-        return bar;
+        JPanel layout = new JPanel(new BorderLayout(88, 0));
+        layout.setOpaque(false);
+        JPanel identity = new JPanel(new GridBagLayout());
+        identity.setOpaque(false);
+        identity.add(content);
+        layout.add(identity, BorderLayout.CENTER);
+        layout.add(actions, BorderLayout.EAST);
+        panel.add(layout);
+        return panel;
     }
 
     private FlatButton menuButton(String text, Color color) {
@@ -253,7 +251,7 @@ public final class MainWindow extends JFrame {
             categoryBox.addItem(value.displayName() + " — " + value.wordCountText());
         }
         categoryBox.setSelectedIndex(Math.max(0, categories.indexOf(settings.category())));
-        body.add(settingRow("Категория", categoryBox));
+        body.add(settingRow("Язык и словарь", categoryBox));
         body.add(Box.createVerticalStrut(10));
 
         sizeBox = new JComboBox<>(GameSettings.BOARD_SIZES.toArray(new GameSettings.BoardSize[0]));
@@ -374,7 +372,7 @@ public final class MainWindow extends JFrame {
         GameSettings.BoardSize size = (GameSettings.BoardSize) sizeBox.getSelectedItem();
 
         if (selectedDifficulty == null || selectedCategory == null || size == null) {
-            showSettingsStatus("Выберите сложность, категорию и размер сетки.", Theme.RED);
+            showSettingsStatus("Выберите сложность, категорию и размер сетки.", Theme.ERROR);
             return false;
         }
 
@@ -384,13 +382,13 @@ public final class MainWindow extends JFrame {
                     size.height(), size.width(),
                     Duration.ofMinutes((Integer) durationSpinner.getValue()));
         } catch (IllegalArgumentException e) {
-            showSettingsStatus(e.getMessage(), Theme.RED);
+            showSettingsStatus(e.getMessage(), Theme.ERROR);
             return false;
         }
 
         String error = candidate.validationError();
         if (error != null) {
-            showSettingsStatus(error, Theme.RED);
+            showSettingsStatus(error, Theme.ERROR);
             return false;
         }
 
@@ -401,7 +399,7 @@ public final class MainWindow extends JFrame {
             settingsStore.saveUi(uiSettings);
             showSettingsStatus("Настройки сохранены в ~/.zaeso-words/settings.properties.", Theme.GREEN);
         } catch (IOException e) {
-            showSettingsStatus("Не удалось сохранить настройки: " + e.getMessage(), Theme.RED);
+            showSettingsStatus("Не удалось сохранить настройки: " + e.getMessage(), Theme.ERROR);
         }
         return true;
     }
@@ -445,7 +443,7 @@ public final class MainWindow extends JFrame {
             settingsStore.saveUi(uiSettings);
             showSettingsStatus("Оформление сохранено.", Theme.GREEN);
         } catch (IOException e) {
-            showSettingsStatus("Не удалось сохранить оформление: " + e.getMessage(), Theme.RED);
+            showSettingsStatus("Не удалось сохранить оформление: " + e.getMessage(), Theme.ERROR);
         }
     }
 
@@ -523,6 +521,10 @@ public final class MainWindow extends JFrame {
         finishTotal.setFont(Theme.HEADING);
         finishTotal.setForeground(Theme.GREEN);
         finishTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        finishStatus = new JLabel(" ");
+        finishStatus.setFont(Theme.SMALL);
+        finishStatus.setForeground(Theme.MUTED);
+        finishStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JPanel scoreTile = new JPanel();
         scoreTile.setLayout(new BoxLayout(scoreTile, BoxLayout.Y_AXIS));
@@ -539,7 +541,7 @@ public final class MainWindow extends JFrame {
         breakdown.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
         breakdown.add(miniTile(tileLetters = new JLabel(), "Буквы", Theme.GREEN));
         breakdown.add(miniTile(tileTime = new JLabel(), "Время", Theme.BLUE));
-        breakdown.add(miniTile(tileMistakes = new JLabel(), "Ошибки", Theme.RED));
+        breakdown.add(miniTile(tileMistakes = new JLabel(), "Ошибки", Theme.ERROR));
         breakdown.add(miniTile(tileHints = new JLabel(), "Подсказки", Theme.PURPLE));
         scoreTile.add(breakdown);
         scoreTile.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -547,6 +549,7 @@ public final class MainWindow extends JFrame {
         body.add(scoreTile);
         body.add(Box.createVerticalStrut(14));
         body.add(finishTotal);
+        body.add(finishStatus);
         body.add(Box.createVerticalStrut(26));
 
         nextRoundButton = Theme.button("Следующий раунд", Theme.GREEN);
@@ -603,7 +606,7 @@ public final class MainWindow extends JFrame {
         cards.show(root, MENU);
     }
 
-    private void roundFinished(GameResult result, boolean timeExpired) {
+    private void roundFinished(GameResult result, boolean timeExpired, boolean saved) {
         totalScore += result.totalScore();
         if (timeExpired) {
             finishTitle.setText("Время вышло");
@@ -632,6 +635,7 @@ public final class MainWindow extends JFrame {
         tileMistakes.setText("−" + score.mistakePenalty());
         tileHints.setText("−" + score.hintPenalty());
         finishTotal.setText("Всего очков: " + totalScore);
+        finishStatus.setText(saved ? " " : "Не удалось сохранить результат в истории игр.");
         nextRoundButton.setVisible(!dailyMode);
         cards.show(root, FINISH);
     }
@@ -821,6 +825,12 @@ public final class MainWindow extends JFrame {
         Path path = chooser.getSelectedFile().toPath();
         if (!path.getFileName().toString().toLowerCase().endsWith(".csv")) {
             path = path.resolveSibling(path.getFileName() + ".csv");
+        }
+
+        if (java.nio.file.Files.exists(path) && JOptionPane.showConfirmDialog(parent,
+                "Заменить существующий файл «" + path.getFileName() + "»?",
+                "Экспорт CSV", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
+            return;
         }
 
         try {

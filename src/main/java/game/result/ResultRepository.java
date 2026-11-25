@@ -51,7 +51,12 @@ public final class ResultRepository {
 
         try {
             GameResult[] stored = mapper.readValue(file.toFile(), GameResult[].class);
-            return new ArrayList<>(Arrays.asList(stored));
+            if (stored == null) {
+                throw new IOException("Ожидался массив результатов");
+            }
+            List<GameResult> results = new ArrayList<>(Arrays.asList(stored));
+            results.removeIf(Objects::isNull);
+            return results;
         } catch (IOException | RuntimeException e) {
             backupCorruptFile();
             return new ArrayList<>();

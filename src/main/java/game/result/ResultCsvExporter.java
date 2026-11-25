@@ -56,6 +56,10 @@ public final class ResultCsvExporter {
 
     private static String escape(String value) {
         if (value == null) return "";
+        String trimmed = value.trim();
+        if (!trimmed.isEmpty() && "=+-@".indexOf(trimmed.charAt(0)) >= 0) {
+            value = "'" + value;
+        }
         if (value.indexOf(';') < 0 && value.indexOf('"') < 0
                 && value.indexOf('\n') < 0 && value.indexOf('\r') < 0) {
             return value;

@@ -294,12 +294,6 @@ public final class GridPanel extends JPanel {
             if (grid.length == 0) return;
 
             Metrics metrics = metrics();
-            g.setColor(new Color(255, 255, 255, 16));
-            g.fillOval(-getWidth() / 4, -getHeight() / 5,
-                    getWidth() / 2, getHeight() / 2);
-            g.fillOval(getWidth() * 3 / 4, getHeight() / 6,
-                    getWidth() / 3, getHeight() / 3);
-
             int fontSize = Math.max(14, (int) (metrics.cell * 0.46));
             g.setFont(new Font("Segoe UI", Font.BOLD, fontSize));
             FontMetrics fontMetrics = g.getFontMetrics();
@@ -311,8 +305,6 @@ public final class GridPanel extends JPanel {
                     int y = metrics.originY + row * (metrics.cell + GAP);
 
                     Color foundColor = foundCells.get(cell);
-                    g.setColor(new Color(0, 0, 0, 46));
-                    g.fillRoundRect(x + 2, y + 3, metrics.cell, metrics.cell, 10, 10);
                     if (foundColor != null) {
                         g.setColor(foundColor(cell, foundColor));
                     } else if (hintCells.contains(cell)) {

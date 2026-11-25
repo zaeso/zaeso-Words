@@ -104,7 +104,7 @@ public class ConsoleGame {
 
                 switch (session.submitWord(answer)) {
                     case EMPTY: System.out.println("Пустой ввод. Введите слово целиком."); break;
-                    case NON_CYRILLIC: System.out.println("Используйте только русские буквы."); break;
+                    case NON_CYRILLIC: System.out.println(session.alphabetHelp()); break;
                     case TOO_LONG: System.out.println("Слово слишком длинное."); break;
                     case NOT_IN_LIST: System.out.println("Такого слова нет в списке."); break;
                     case ALREADY_FOUND: System.out.println("Это слово уже найдено."); break;

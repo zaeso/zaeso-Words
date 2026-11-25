@@ -68,6 +68,17 @@ class ResultRepositoryTest {
     }
 
     @Test
+    void skipsNullEntriesWithoutLosingResults() throws IOException {
+        Path file = tempDir.resolve("results.json");
+        ResultRepository repository = new ResultRepository(file);
+        repository.save(result(1, "Обычный", 10, 10, 8, 10, 120, 0));
+        String json = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        writeUtf8(file, json.replaceFirst("\\[", "[null,"));
+
+        assertEquals(1, repository.history(10, 10, "Обычный").size());
+    }
+
+    @Test
     void ranksByFoundWordsThenTime() throws IOException {
         ResultRepository repository = new ResultRepository(tempDir.resolve("results.json"));
         repository.save(result(1, "Обычный", 10, 10, 5, 10, 100, 0));

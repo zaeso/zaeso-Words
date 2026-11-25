@@ -25,8 +25,10 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -43,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 public final class GamePanel extends JPanel {
     /** Спокойная палитра для светлого фона сетки. */
@@ -77,7 +80,7 @@ public final class GamePanel extends JPanel {
     }
 
     public interface Listener {
-        void roundFinished(GameResult result, boolean timeExpired);
+        void roundFinished(GameResult result, boolean timeExpired, boolean saved);
     }
 
     private final Listener listener;
@@ -90,6 +93,7 @@ public final class GamePanel extends JPanel {
     private final BadgeLabel foundLabel = new BadgeLabel("Найдено 0/0");
     private final BadgeLabel timeLabel = new BadgeLabel("Время");
     private final BadgeLabel hintsLabel = new BadgeLabel("Подсказки");
+    private final JProgressBar progress = new JProgressBar();
     private final JLabel statusLabel = new JLabel(" ");
     private final JButton hintButton = Theme.button("Подсказка", Theme.GREEN);
     private final JButton finishButton = Theme.button("Завершить раунд", Theme.ORANGE);
@@ -98,10 +102,10 @@ public final class GamePanel extends JPanel {
     private javax.swing.border.TitledBorder wordsBorder;
 
     private GameSession session;
+    private SwingWorker<GenerationResult, Void> roundLoader;
     private UiSettings uiSettings = UiSettings.defaults();
     private final Map<String, Color> wordColors = new HashMap<>();
     private Color[] wordPalette = DEEP_WORD_COLORS;
-    private int round;
     private int carriedScore;
 
     public GamePanel(Listener listener, Runnable menuAction, ResultRepository repository) {
@@ -145,34 +149,70 @@ public final class GamePanel extends JPanel {
      */
     public void startRound(GameSettings settings, int round, int carriedScore,
                            String resultLabel, String title, long seed) {
-        this.round = round;
+        stopRound();
         this.carriedScore = carriedScore;
         GameConfig config = settings.toConfig();
         WordCategory category = settings.category();
-        GenerationResult generation = RoundGenerator.generate(config, category, seed);
-        if (!generation.ok()) {
-            session = null;
-            ticker.stop();
-            setControlsEnabled(false);
-            statusLabel.setForeground(Theme.RED);
-            statusLabel.setText(generation.error());
-            return;
-        }
-
-        String label = resultLabel != null
-                ? resultLabel
-                : leaderboardName(settings.difficulty(), category);
-        session = new GameSession(generation.puzzle(), config, label);
-        session.start();
-        wordColors.clear();
-        wordPalette = paletteForBackground(Theme.BLUE_DARK);
-
+        session = null;
+        setControlsEnabled(false);
+        gridPanel.setGrid(new char[0][0]);
+        wordsPanel.removeAll();
+        wordsPanel.revalidate();
+        wordsPanel.repaint();
+        wordsBorder.setTitle("Слова");
+        progress.setIndeterminate(true);
+        totalLabel.setText("Всего очков: " + carriedScore);
+        foundLabel.setText("Найдено —");
+        timeLabel.setText("Время —");
+        timeLabel.setForeground(Color.WHITE);
+        hintsLabel.setText("Подсказки —");
         roundLabel.setText(title != null
                 ? title
                 : "Раунд " + round + " · " + settings.difficulty().displayName()
                         + " · " + category.displayName()
                         + " · " + config.height() + "×" + config.width());
-        totalLabel.setText("Всего очков: " + carriedScore);
+        statusLabel.setForeground(Theme.MUTED);
+        statusLabel.setText("Готовим сетку…");
+
+        roundLoader = new SwingWorker<GenerationResult, Void>() {
+            @Override
+            protected GenerationResult doInBackground() {
+                return RoundGenerator.generate(config, category, seed);
+            }
+
+            @Override
+            protected void done() {
+                if (roundLoader != this) return;
+                roundLoader = null;
+                progress.setIndeterminate(false);
+                try {
+                    openRound(get(), settings, config, resultLabel);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    showError("Подготовка сетки прервана.");
+                } catch (ExecutionException e) {
+                    showError("Не удалось подготовить сетку. Вернитесь в меню и попробуйте снова.");
+                }
+            }
+        };
+        roundLoader.execute();
+    }
+
+    private void openRound(GenerationResult generation, GameSettings settings,
+                           GameConfig config, String resultLabel) {
+        if (!generation.ok()) {
+            showError(generation.error());
+            return;
+        }
+
+        String label = resultLabel != null
+                ? resultLabel
+                : leaderboardName(settings.difficulty(), settings.category());
+        session = new GameSession(generation.puzzle(), config, label);
+        session.start();
+        wordColors.clear();
+        wordPalette = paletteForBackground(Theme.BLUE_DARK);
+
         gridPanel.setGrid(session.grid());
         gridPanel.setFoundCells(Collections.emptyMap());
         rebuildWordList();
@@ -185,6 +225,12 @@ public final class GamePanel extends JPanel {
 
     public void stopRound() {
         ticker.stop();
+        if (roundLoader != null) {
+            roundLoader.cancel(true);
+            roundLoader = null;
+        }
+        progress.setIndeterminate(false);
+        progress.setValue(0);
         if (session != null && !session.isFinished()) {
             session.stop();
         }
@@ -192,7 +238,7 @@ public final class GamePanel extends JPanel {
 
     private JPanel buildHeader() {
         GradientPanel header = GradientPanel.header();
-        header.setLayout(new BorderLayout());
+        header.setLayout(new BorderLayout(0, 8));
         header.setBorder(BorderFactory.createEmptyBorder(14, 20, 14, 20));
 
         roundLabel.setFont(Theme.HEADING);
@@ -207,7 +253,7 @@ public final class GamePanel extends JPanel {
         left.add(Box.createVerticalStrut(2));
         left.add(totalLabel);
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         right.setOpaque(false);
         foundLabel.setFont(Theme.BUTTON);
         foundLabel.setForeground(Color.WHITE);
@@ -219,8 +265,14 @@ public final class GamePanel extends JPanel {
         right.add(timeLabel);
         right.add(hintsLabel);
 
-        header.add(left, BorderLayout.WEST);
-        header.add(right, BorderLayout.EAST);
+        header.add(left, BorderLayout.NORTH);
+        header.add(right, BorderLayout.CENTER);
+        progress.setPreferredSize(new Dimension(0, 6));
+        progress.setForeground(Theme.GREEN_LIGHT);
+        progress.setBackground(Theme.RED_DARK);
+        progress.setBorderPainted(false);
+        progress.getAccessibleContext().setAccessibleName("Доля найденных слов");
+        header.add(progress, BorderLayout.SOUTH);
         return header;
     }
 
@@ -297,7 +349,7 @@ public final class GamePanel extends JPanel {
         } else if (result == WordResult.EMPTY) {
             showError("Введите слово");
         } else if (result == WordResult.NON_CYRILLIC) {
-            showError("Только русские буквы");
+            showError(session.alphabetHelp());
         } else if (result == WordResult.TOO_LONG) {
             showError("Слово слишком длинное");
         } else if (result == WordResult.NOT_IN_LIST) {
@@ -336,7 +388,7 @@ public final class GamePanel extends JPanel {
     }
 
     private void showError(String message) {
-        statusLabel.setForeground(Theme.RED);
+        statusLabel.setForeground(Theme.ERROR);
         statusLabel.setText(message);
         playSound(SoundPlayer::error);
     }
@@ -480,6 +532,8 @@ public final class GamePanel extends JPanel {
                 + "/" + session.hintsLimit());
         int found = session.foundWords().size();
         int total = session.allWords().size();
+        progress.setMaximum(total);
+        progress.setValue(found);
         foundLabel.setText("Найдено " + found + "/" + total);
         if (wordsBorder != null) {
             wordsBorder.setTitle("Слова · " + found + "/" + total);
@@ -505,13 +559,13 @@ public final class GamePanel extends JPanel {
         setControlsEnabled(false);
         GameResult result = session.finish(reason);
         playSound(SoundPlayer::finish);
+        boolean saved = true;
         try {
             repository.save(result);
         } catch (IOException e) {
-            statusLabel.setForeground(Theme.RED);
-            statusLabel.setText("Результат не сохранён: " + e.getMessage());
+            saved = false;
         }
-        listener.roundFinished(result, reason == FinishReason.TIME_EXPIRED);
+        listener.roundFinished(result, reason == FinishReason.TIME_EXPIRED, saved);
     }
 
     private void setControlsEnabled(boolean enabled) {

@@ -3,6 +3,7 @@ package game.generator;
 import game.model.Direction;
 import game.model.Placement;
 import game.model.Puzzle;
+import game.model.WordLanguage;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,11 +46,17 @@ public class GridGenerator {
 
     public GenerationResult generateChecked(int height, int width,
                                             List<String> sourceWords, int minWords) {
+        return generateChecked(height, width, sourceWords, minWords, WordLanguage.RUSSIAN);
+    }
+
+    public GenerationResult generateChecked(int height, int width,
+                                            List<String> sourceWords, int minWords,
+                                            WordLanguage language) {
         int maxLength = Math.max(height, width);
         List<String> source = sourceWords == null ? Collections.<String>emptyList() : sourceWords;
         List<String> words = source.stream()
                 .filter(Objects::nonNull)
-                .map(s -> s.toUpperCase(Locale.ROOT).replaceAll("[^А-ЯЁ]", ""))
+                .map(s -> language.keepLetters(s.toUpperCase(Locale.ROOT)))
                 .filter(s -> !s.trim().isEmpty())
                 .distinct()
                 .filter(s -> s.length() <= maxLength)
@@ -86,8 +93,8 @@ public class GridGenerator {
             }
 
             if (placed.size() >= minWords) {
-                fillEmptyCells(grid);
-                return GenerationResult.success(new Puzzle(grid, placed));
+                fillEmptyCells(grid, language.alphabet());
+                return GenerationResult.success(new Puzzle(grid, placed, language));
             }
         }
 
@@ -206,8 +213,7 @@ public class GridGenerator {
         }
     }
 
-    private void fillEmptyCells(char[][] grid) {
-        String alphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+    private void fillEmptyCells(char[][] grid, String alphabet) {
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
                 if (grid[r][c] == '\0') {
