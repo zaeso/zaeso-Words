@@ -79,7 +79,7 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress -DskipTests package
 
       - name: Упаковка сборки для Windows
-        run: zip -j "target/zaeso-words-${GITHUB_REF_NAME#v}-windows.zip" target/zaeso-words-*.jar run-game.bat LICENSE.txt
+        run: zip -j "target/zaeso-words-${GITHUB_REF_NAME#v}-windows.zip" target/zaeso-words-*.jar run-game.bat LICENSE.txt DICTIONARIES.md PROMPTS.md
 
       - name: Публикация файлов релиза
         uses: softprops/action-gh-release@v2
@@ -90,11 +90,11 @@ jobs:
             run-game.bat
           generate_release_notes: true
           body: |
-            ## Что нового в 1.2.0
+            ## Что нового в 1.3.0
 
-            - Новый визуальный стиль, шкала найденных слов и фоновая загрузка сетки.
-            - 502 отобранных русских слова и 376 английских. Словарь выбирается в настройках.
-            - Подтверждение перезаписи CSV и защита текстовых полей при экспорте.
+            - Более 10 000 слов на каждом языке. Русский словарь содержит существительные в именительном падеже.
+            - Единый загрузчик словарей и воспроизводимая выборка слов для раунда.
+            - Журнал запросов с фрагментами кода и сведения о лицензиях словарей в архиве Windows.
 
             ## Запуск
 
@@ -105,7 +105,7 @@ jobs:
             Либо запустите вручную из папки с JAR:
 
             ```bash
-            java -jar zaeso-words-1.2.0.jar
+            java -jar zaeso-words-1.3.0.jar
             ```
 
             Maven не нужен. Для отладочного консольного режима добавьте `--console`.

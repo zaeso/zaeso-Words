@@ -1,7 +1,7 @@
-Технологии|technology.txt
-Животные|animals.txt
-Космос|space.txt
-Природа|nature.txt
-Еда|food.txt
-Все русские слова|all-russian.txt|stream
+Технологии|technology.txt|ru
+Животные|animals.txt|ru
+Космос|space.txt|ru
+Природа|nature.txt|ru
+Еда|food.txt|ru
+Все русские слова|all-russian.txt|ru
 Английские слова|english.txt|en

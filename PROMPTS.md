@@ -289,6 +289,56 @@ for (int i = 0; i <= steps; i++) {
 
 > На скриншоте речь о выгрузке реальных запросов и ответов модели. Сейчас `PROMPTS.md` содержит пересказ, поэтому восстановлю дословные пары там, где есть исходный текст. Одновременно проверю, завершилась ли публикация игры.
 
+### 18 · Расширить словари и разделить обработку данных и генерацию
+
+**Пользователь**
+
+> [@Cyber Defense](plugin://cyber-defense@local-cyber-defense) доделай промты там чась кода добавь и сделай больше слов хотя бы 10к русских и англиских в руском только существлительные импадеже код на пиши с новой архетектурой и декомпазицией и релиз
+
+**Модель**
+
+> Расширю `PROMPTS.md` фрагментами кода и вынесу обработку словарей из игрового цикла. Для русского списка отберу существительные в именительном падеже. Затем проверю оба списка, сборку на Java 8 и подготовлю релиз. Навык Cyber Defense применю для защитной проверки загрузчика словарей.
+
+**Как реализовано**
+
+1. [Сборщик словарей](tools/build_dictionaries.py) обрабатывает внешние источники отдельно от игры. Для русского списка он берёт начальную форму слова и проверяет часть речи и падеж по OpenCorpora.
+
+   ```python
+   for word, (paradigm, form) in dictionary.words.iteritems():
+       if form != 0 or not RUSSIAN.fullmatch(word):
+           continue
+       tag = dictionary.build_tag_info(paradigm, form)
+       if tag.POS != "NOUN" or tag.case != "nomn" or tag.grammemes & disallowed:
+           continue
+       folded = word.replace("ё", "е")
+       if folded not in blocked and folded not in blocked_lemmas:
+           accepted.add(word)
+   ```
+
+2. [DictionaryResources](src/main/java/game/dictionary/DictionaryResources.java) читает встроенные UTF-8-ресурсы и проверяет имена файлов и язык. [WordCategory](src/main/java/game/dictionary/WordCategory.java) хранит настройки категории. [WordSampler](src/main/java/game/dictionary/WordSampler.java) выбирает слова без повторов и отдаёт приоритет коротким словам.
+
+   ```java
+   int index = random.nextInt(pool.size());
+   int last = pool.size() - 1;
+   selected.add(pool.set(index, pool.get(last)));
+   pool.remove(last);
+   if (pool.isEmpty()) pools.remove(i);
+   ```
+
+3. [RoundGenerator](src/main/java/game/generator/RoundGenerator.java) передаёт выбранные слова и алфавит в генератор поля. Источник случайных чисел общий для обоих шагов. С одинаковым словарём и seed получается одна и та же сетка.
+
+   ```java
+   Random random = new Random(seed);
+   int maxLength = Math.max(config.height(), config.width());
+   int sampleSize = Math.max(config.minWords() * 4, 30);
+   List<String> pool = category.sampleWords(maxLength, sampleSize, random);
+
+   return new GridGenerator(random).generateChecked(
+           config.height(), config.width(), pool, config.minWords(), category.language());
+   ```
+
+**Результат.** В версии 1.3.0 доступны 52 026 русских и 37 713 английских слов. На Temurin 8u512 прошли 152 теста. В обоих консольных режимах проверены настройка словаря, генерация поля, подсказка и запись результата.
+
 ## Проверка и запуск
 
 ```powershell
@@ -301,19 +351,19 @@ mvn verify
 
 Снимки со сборки 1.2.0 — [меню](target/preview-menu.png), [русский раунд](target/preview-game.png), [английский раунд](target/preview-english.png), [итоги](target/preview-result.png). Снимки находятся в локальной папке сборки.
 
-Исполняемый файл после сборки — `target/zaeso-words-1.2.0.jar`. Параметры и история хранятся в `~/.zaeso-words/`.
+Исполняемый файл после сборки — `target/zaeso-words-1.3.0.jar`. Параметры и история хранятся в `~/.zaeso-words/`.
 
 ## Следующие идеи
 
-### 18 · Показать результаты за последние семь дней
+### 19 · Показать результаты за последние семь дней
 
 **Запрос.** Добавь к статистике сетки дня компактный график лучших результатов. Покажи дни без игры отдельным состоянием и используй локальную историю.
 
-### 19 · Объяснить правила перед первой игрой
+### 20 · Объяснить правила перед первой игрой
 
 **Запрос.** Добавь короткий экран «Как играть» с примером выбора диагонального слова. Опиши подсказку и штрафы на одном примере.
 
-### 20 · Повторить ежедневную сетку после выхода
+### 21 · Повторить ежедневную сетку после выхода
 
 **Запрос.** Сделай действие «Повторить сетку» на экране итогов ежедневной игры. Используй ту же дату и отдельную попытку в истории.
 

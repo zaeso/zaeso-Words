@@ -24,8 +24,30 @@ class WordCategoryTest {
         assertTrue(WordCategory.all().stream()
                 .anyMatch(category -> category.displayName().equals("Животные")));
         assertTrue(WordCategory.all().stream()
-                .anyMatch(category -> category.displayName().equals("Все русские слова")
-                        && category.streamed()));
+                .anyMatch(category -> category.displayName().equals("Все русские слова")));
+    }
+
+    @Test
+    void bothGeneralDictionariesContainTenThousandPlayableWords() {
+        for (String name : new String[]{"all-russian", "english"}) {
+            WordCategory category = WordCategory.fromInput(name);
+            assertTrue(category.suitableWordCount(10) >= 10_000, name);
+            assertEquals(category.words().size(), category.words().stream().distinct().count());
+            assertTrue(category.words().stream().allMatch(category.language()::accepts));
+            assertEquals(category.sampleWords(10, 48, new Random(7)),
+                    category.sampleWords(10, 48, new Random(7)));
+        }
+    }
+
+    @Test
+    void thematicRussianDictionariesUseOnlyApprovedNouns() {
+        WordCategory russian = WordCategory.fromInput("all-russian");
+        java.util.Set<String> nouns = new java.util.HashSet<>(russian.words());
+        for (WordCategory category : WordCategory.all()) {
+            if (category.language() == russian.language()) {
+                assertTrue(nouns.containsAll(category.words()), category.displayName());
+            }
+        }
     }
 
     @Test
@@ -40,10 +62,7 @@ class WordCategoryTest {
 
     @Test
     void samplesRandomWordsFromCompleteRussianDictionary() {
-        WordCategory all = WordCategory.all().stream()
-                .filter(WordCategory::streamed)
-                .findFirst()
-                .get();
+        WordCategory all = WordCategory.fromInput("all-russian");
 
         List<String> first = all.sampleWords(12, 30, new Random(1L));
         List<String> second = all.sampleWords(12, 30, new Random(2L));
@@ -59,10 +78,7 @@ class WordCategoryTest {
 
     @Test
     void completeDictionaryBuildsTwelveWordPuzzleOnWideGrid() {
-        WordCategory all = WordCategory.all().stream()
-                .filter(WordCategory::streamed)
-                .findFirst()
-                .get();
+        WordCategory all = WordCategory.fromInput("all-russian");
 
         List<String> pool = all.sampleWords(12, 48, new Random(7L));
         game.generator.GridGenerator.GenerationResult result =
